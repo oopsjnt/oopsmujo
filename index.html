@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4a90e2">
-    <meta name="description" content="Aplicativo de mototáxi para o seu bairro">
-    <title>MotoTáxi do Bairro</title>
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Oops Transportes Caramujo - Transporte rápido e seguro para o seu bairro">
+    <title>Oops Transportes Caramujo</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192x192.png">
@@ -15,13 +15,18 @@
     <!-- Adicione os produtos Firebase que você quer usar -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>MotoTáxi do Bairro</h1>
-            <p>Transporte rápido e seguro para o seu dia a dia</p>
+            <h1>Oops Transportes Caramujo</h1>
+            <p>Transporte rápido e seguro para o seu bairro</p>
+            <button id="toggle-theme-button" class="theme-toggle">
+                <span class="light-icon">☀️</span>
+                <span class="dark-icon">🌙</span>
+            </button>
         </header>
 
         <!-- Seção de Login/Cadastro (Visível inicialmente) -->
@@ -86,9 +91,38 @@
         <section id="app-section" class="app-section hidden">
             <!-- Conteúdo do App será carregado dinamicamente baseado no tipo de usuário -->
             <div class="user-info">
-                <p>Olá, <span id="user-name">Usuário</span>!</p>
-                <button id="logout-button" class="secondary-button">Sair</button>
+                <div class="user-profile">
+                    <img id="user-profile-picture" src="icons/default-profile.png" alt="Foto de perfil">
+                    <p>Olá, <span id="user-name">Usuário</span>!</p>
+                </div>
+                <div id="user-rating" class="user-rating"></div>
+                <div class="user-actions">
+                    <button id="profile-button" class="secondary-button">Perfil</button>
+                    <button id="logout-button" class="secondary-button">Sair</button>
+                </div>
             </div>
+            
+            <!-- Seção de Perfil (Escondida inicialmente) -->
+            <section id="profile-section" class="profile-section hidden">
+                <h2>Seu Perfil</h2>
+                <div class="profile-picture-container">
+                    <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de perfil">
+                    <label for="profile-picture" class="upload-button">Alterar foto</label>
+                    <input type="file" id="profile-picture" accept="image/*" class="hidden">
+                </div>
+                <div class="form-group">
+                    <label for="profile-name">Nome:</label>
+                    <input type="text" id="profile-name" placeholder="Seu nome completo">
+                </div>
+                <div class="form-group">
+                    <label for="profile-phone">Telefone:</label>
+                    <input type="tel" id="profile-phone" placeholder="Seu telefone com DDD">
+                </div>
+                <div class="form-group">
+                    <button id="save-profile-button" class="primary-button">Salvar Perfil</button>
+                    <button id="back-from-profile-button" class="secondary-button">Voltar</button>
+                </div>
+            </section>
             
             <!-- Interface do Passageiro -->
             <div id="passenger-interface" class="interface-container hidden">
@@ -96,6 +130,8 @@
                 <div class="form-group">
                     <label for="pickup-location">Onde você está?</label>
                     <input type="text" id="pickup-location" placeholder="Ex: Rua das Flores, 123">
+                    <button id="use-current-location" class="secondary-button">Usar minha localização atual</button>
+                    <p id="location-status" class="status-text hidden"></p>
                 </div>
                 <div class="form-group">
                     <label for="destination">Para onde deseja ir?</label>
@@ -105,9 +141,28 @@
                     <button id="request-ride-button" class="primary-button">Solicitar Mototáxi</button>
                 </div>
                 
+                <!-- Mototaxistas próximos -->
+                <div id="nearby-drivers" class="nearby-drivers"></div>
+                
+                <!-- Status da corrida -->
                 <div id="ride-status" class="status-container hidden">
                     <h3>Status da sua corrida</h3>
                     <p id="status-message">Procurando mototaxistas próximos...</p>
+                    <div class="ride-actions">
+                        <button id="cancel-ride-button" class="secondary-button" data-ride-id="">Cancelar Corrida</button>
+                    </div>
+                </div>
+                
+                <!-- Contato WhatsApp -->
+                <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
+                
+                <!-- Histórico de viagens -->
+                <div id="ride-history" class="history-section"></div>
+                
+                <!-- Histórico de avaliações -->
+                <div class="ratings-section">
+                    <h3>Minhas Avaliações</h3>
+                    <div id="user-ratings-history" class="ratings-history"></div>
                 </div>
             </div>
             
@@ -141,6 +196,18 @@
                         <button id="complete-ride-button" class="primary-button">Finalizar Corrida</button>
                     </div>
                 </div>
+                
+                <!-- Contato WhatsApp -->
+                <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
+                
+                <!-- Histórico de viagens -->
+                <div id="ride-history" class="history-section"></div>
+                
+                <!-- Histórico de avaliações -->
+                <div class="ratings-section">
+                    <h3>Minhas Avaliações</h3>
+                    <div id="driver-ratings-history" class="ratings-history"></div>
+                </div>
             </div>
         </section>
         
@@ -152,6 +219,8 @@
         </div>
     </div>
 
+    <script src="geo-service.js"></script>
+    <script src="rating-service.js"></script>
     <script src="script.js"></script>
     <script>
         // Registrar o Service Worker
@@ -205,6 +274,55 @@
         pwaCloseButton.addEventListener('click', () => {
             pwaInstallBanner.classList.add('hidden');
         });
+        
+        // Alternar tema
+        const toggleThemeButton = document.getElementById('toggle-theme-button');
+        if (toggleThemeButton) {
+            toggleThemeButton.addEventListener('click', () => {
+                if (document.body.classList.contains('dark-theme')) {
+                    document.body.classList.remove('dark-theme');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    document.body.classList.add('dark-theme');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+        }
+        
+        // Botões de perfil
+        const profileButton = document.getElementById('profile-button');
+        const backFromProfileButton = document.getElementById('back-from-profile-button');
+        const profileSection = document.getElementById('profile-section');
+        const passengerInterface = document.getElementById('passenger-interface');
+        const driverInterface = document.getElementById('driver-interface');
+        
+        if (profileButton && profileSection) {
+            profileButton.addEventListener('click', () => {
+                profileSection.classList.remove('hidden');
+                passengerInterface.classList.add('hidden');
+                driverInterface.classList.add('hidden');
+            });
+        }
+        
+        if (backFromProfileButton && profileSection) {
+            backFromProfileButton.addEventListener('click', () => {
+                profileSection.classList.add('hidden');
+                // Verificar qual interface mostrar
+                if (currentUser) {
+                    db.collection("users").doc(currentUser.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                const userData = doc.data();
+                                if (userData.accountType === "user") {
+                                    passengerInterface.classList.remove('hidden');
+                                } else {
+                                    driverInterface.classList.remove('hidden');
+                                }
+                            }
+                        });
+                }
+            });
+        }
     </script>
 </body>
 </html>

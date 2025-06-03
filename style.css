@@ -6,10 +6,49 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+:root {
+    /* Variáveis de cores para tema claro */
+    --bg-color: #f5f5f5;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --primary-color: #4a90e2;
+    --primary-hover: #357abd;
+    --secondary-color: #f5f5f5;
+    --secondary-hover: #e5e5e5;
+    --border-color: #dddddd;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --success-color: #4caf50;
+    --error-color: #e53935;
+    --warning-color: #f39c12;
+    --info-color: #2196f3;
+    --header-bg: #4a90e2;
+    --header-text: #ffffff;
+}
+
+/* Tema escuro */
+.dark-theme {
+    --bg-color: #1a1a2e;
+    --card-bg: #16213e;
+    --text-color: #e6e6e6;
+    --primary-color: #0f3460;
+    --primary-hover: #1a4b84;
+    --secondary-color: #2a2a4a;
+    --secondary-hover: #3a3a5a;
+    --border-color: #444444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --success-color: #388e3c;
+    --error-color: #d32f2f;
+    --warning-color: #f57c00;
+    --info-color: #1976d2;
+    --header-bg: #0f3460;
+    --header-text: #ffffff;
+}
+
 body {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .container {
@@ -22,10 +61,11 @@ header {
     text-align: center;
     margin-bottom: 30px;
     padding: 20px 0;
-    background-color: #4a90e2;
-    color: white;
+    background-color: var(--header-bg);
+    color: var(--header-text);
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px var(--shadow-color);
+    position: relative;
 }
 
 h1 {
@@ -36,25 +76,64 @@ h1 {
 h2 {
     font-size: 1.8rem;
     margin-bottom: 20px;
-    color: #4a90e2;
+    color: var(--primary-color);
 }
 
 h3 {
     font-size: 1.4rem;
     margin-bottom: 15px;
-    color: #555;
+    color: var(--text-color);
 }
 
 .hidden {
     display: none !important;
 }
 
+/* Botão de alternar tema */
+.theme-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--header-text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-theme .light-icon {
+    display: none;
+}
+
+.dark-theme .dark-icon {
+    display: inline;
+}
+
+.light-icon {
+    display: inline;
+}
+
+.dark-icon {
+    display: none;
+}
+
 /* Estilos dos Formulários */
 .form-container {
-    background-color: white;
+    background-color: var(--card-bg);
     padding: 25px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px var(--shadow-color);
     margin-bottom: 20px;
 }
 
@@ -75,9 +154,11 @@ input[type="tel"],
 select {
     width: 100%;
     padding: 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 16px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
 }
 
 .radio-group {
@@ -92,7 +173,7 @@ select {
 
 /* Botões */
 .primary-button {
-    background-color: #4a90e2;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     padding: 12px 20px;
@@ -105,13 +186,13 @@ select {
 }
 
 .primary-button:hover {
-    background-color: #357abd;
+    background-color: var(--primary-hover);
 }
 
 .secondary-button {
-    background-color: #f5f5f5;
-    color: #333;
-    border: 1px solid #ddd;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     padding: 8px 15px;
     border-radius: 4px;
     cursor: pointer;
@@ -120,7 +201,7 @@ select {
 }
 
 .secondary-button:hover {
-    background-color: #e5e5e5;
+    background-color: var(--secondary-hover);
 }
 
 /* Abas de Login/Cadastro */
@@ -133,12 +214,13 @@ select {
     flex: 1;
     padding: 12px;
     text-align: center;
-    background-color: #f5f5f5;
+    background-color: var(--secondary-color);
     border: none;
     cursor: pointer;
     font-size: 16px;
     font-weight: 500;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, color 0.3s;
+    color: var(--text-color);
 }
 
 .tab:first-child {
@@ -152,16 +234,16 @@ select {
 }
 
 .tab.active {
-    background-color: #4a90e2;
+    background-color: var(--primary-color);
     color: white;
 }
 
 /* Seção do App */
 .app-section {
-    background-color: white;
+    background-color: var(--card-bg);
     padding: 25px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px var(--shadow-color);
 }
 
 .user-info {
@@ -170,16 +252,152 @@ select {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Seção de Perfil */
+.profile-section {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.profile-picture-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#profile-picture-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 3px solid var(--primary-color);
+}
+
+.upload-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.upload-button:hover {
+    background-color: var(--primary-hover);
 }
 
 /* Interface do Passageiro */
 .status-container {
-    background-color: #f9f9f9;
+    background-color: var(--secondary-color);
     padding: 15px;
     border-radius: 8px;
     margin-top: 20px;
-    border-left: 4px solid #4a90e2;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Status de localização */
+.status-text {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: var(--info-color);
+    color: white;
+}
+
+.status-text.error {
+    background-color: var(--error-color);
+}
+
+/* Botão de usar localização atual */
+#use-current-location {
+    margin-top: 8px;
+    width: auto;
+}
+
+/* Mototaxistas próximos */
+.nearby-drivers {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.drivers-list {
+    margin-top: 10px;
+}
+
+.driver-item {
+    background-color: var(--secondary-color);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.driver-profile-small {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.driver-profile-small img, .passenger-profile-small img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.driver-info {
+    flex-grow: 1;
+}
+
+.driver-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.driver-distance {
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+.driver-rating {
+    color: var(--warning-color);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.info-message {
+    color: var(--text-color);
+    opacity: 0.7;
+    text-align: center;
+    padding: 10px;
+    font-style: italic;
 }
 
 /* Interface do Mototaxista */
@@ -199,7 +417,7 @@ select {
 }
 
 .rides-container {
-    background-color: #f9f9f9;
+    background-color: var(--secondary-color);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -211,11 +429,18 @@ select {
 }
 
 .ride-item {
-    background-color: white;
+    background-color: var(--card-bg);
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.passenger-profile-small {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 
 .ride-item:last-child {
@@ -229,20 +454,74 @@ select {
 }
 
 .empty-message {
-    color: #888;
+    color: var(--text-color);
+    opacity: 0.7;
     text-align: center;
     padding: 20px 0;
 }
 
 .current-ride {
-    background-color: #f0f7ff;
+    background-color: var(--secondary-color);
     padding: 20px;
     border-radius: 8px;
-    border-left: 4px solid #4a90e2;
+    border-left: 4px solid var(--primary-color);
 }
 
 .ride-details {
     margin-bottom: 15px;
+}
+
+/* Contato WhatsApp */
+.whatsapp-container {
+    margin: 15px 0;
+    text-align: center;
+}
+
+.whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #25D366;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.whatsapp-link:hover {
+    background-color: #128C7E;
+}
+
+.whatsapp-link img {
+    width: 24px;
+    height: 24px;
+}
+
+/* Histórico de viagens */
+.history-section {
+    margin-top: 30px;
+}
+
+.history-list {
+    margin-top: 15px;
+}
+
+.history-item {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.history-item.status-completed {
+    border-left-color: var(--success-color);
+}
+
+.history-item.status-cancelled {
+    border-left-color: var(--error-color);
 }
 
 /* Banner de instalação do PWA */
@@ -251,13 +530,14 @@ select {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: #4a90e2;
+    background-color: var(--primary-color);
     color: white;
     padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -2px 10px var(--shadow-color);
+    z-index: 1000;
 }
 
 .pwa-banner p {
@@ -273,13 +553,94 @@ select {
 
 .pwa-banner .primary-button {
     background-color: white;
-    color: #4a90e2;
+    color: var(--primary-color);
 }
 
 .pwa-banner .secondary-button {
     background-color: transparent;
     color: white;
     border-color: white;
+}
+
+/* Estilos para avaliações */
+.user-rating {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rating-stars {
+    color: var(--warning-color);
+    font-size: 16px;
+}
+
+.rating-value {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.rating-count {
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 12px;
+}
+
+.ratings-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.ratings-history {
+    margin-top: 15px;
+}
+
+.rating-item {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--warning-color);
+}
+
+.rating-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.rating-author {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.rating-comment {
+    font-style: italic;
+    color: var(--text-color);
+}
+
+.rating-date {
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 12px;
+}
+
+.loading-message {
+    color: var(--primary-color);
+    text-align: center;
+    padding: 10px;
+}
+
+.error-message {
+    color: var(--error-color);
+    text-align: center;
+    padding: 10px;
 }
 
 /* Responsividade */
@@ -307,5 +668,16 @@ select {
     .radio-group {
         flex-direction: column;
         gap: 10px;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .user-actions {
+        width: 100%;
+        justify-content: space-between;
     }
 }

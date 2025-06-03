@@ -1,12 +1,14 @@
 // Nome do cache
-const CACHE_NAME = 'mototaxi-app-v1';
+const CACHE_NAME = 'oops-transportes-v1';
 
-// Arquivos para armazenar em cache
+// Arquivos para cache inicial
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/script.js',
+  '/geo-service.js',
+  '/rating-service.js',
   '/manifest.json',
   '/icons/icon-72x72.png',
   '/icons/icon-96x96.png',
@@ -15,7 +17,9 @@ const urlsToCache = [
   '/icons/icon-152x152.png',
   '/icons/icon-192x192.png',
   '/icons/icon-384x384.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/icons/whatsapp.png',
+  '/icons/default-profile.png'
 ];
 
 // Instalação do Service Worker
@@ -25,6 +29,9 @@ self.addEventListener('install', event => {
       .then(cache => {
         console.log('Cache aberto');
         return cache.addAll(urlsToCache);
+      })
+      .catch(error => {
+        console.error('Erro ao abrir cache:', error);
       })
   );
 });
@@ -47,18 +54,11 @@ self.addEventListener('activate', event => {
 
 // Estratégia de cache: Network First, fallback para cache
 self.addEventListener('fetch', event => {
-  // Não interceptar requisições para o Firebase
-  if (event.request.url.includes('firebaseio.com') || 
-      event.request.url.includes('googleapis.com') ||
-      event.request.url.includes('gstatic.com')) {
-    return;
-  }
-  
   event.respondWith(
     fetch(event.request)
       .then(response => {
         // Se a resposta for válida, clone-a e armazene-a no cache
-        if (response && response.status === 200) {
+        if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME)
             .then(cache => {
@@ -68,8 +68,56 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Se a rede falhar, tente usar o cache
+        // Se falhar, tente buscar do cache
         return caches.match(event.request);
+      })
+  );
+});
+
+// Gerenciamento de notificações push
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  
+  try {
+    const data = event.data.json();
+    const options = {
+      body: data.body || 'Nova notificação',
+      icon: data.icon || '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      vibrate: [100, 50, 100],
+      data: {
+        url: data.url || '/'
+      }
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'Oops Transportes', options)
+    );
+  } catch (error) {
+    console.error('Erro ao processar notificação push:', error);
+  }
+});
+
+// Clique em notificação
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.matchAll({type: 'window'})
+      .then(clientList => {
+        const url = event.notification.data.url || '/';
+        
+        // Verificar se já existe uma janela aberta e focar nela
+        for (const client of clientList) {
+          if (client.url === url && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        
+        // Se não houver janela aberta, abrir uma nova
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
       })
   );
 });
