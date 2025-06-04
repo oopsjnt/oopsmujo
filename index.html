@@ -18,7 +18,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 </head>
-<body>
+<body class="dark-theme">
     <div class="container">
         <header>
             <h1>Oops Transportes Caramujo</h1>
@@ -102,8 +102,16 @@
                 </div>
             </div>
             
-            <!-- Seção de Perfil (Escondida inicialmente) -->
-            <section id="profile-section" class="profile-section hidden">
+            <!-- Navegação principal -->
+            <div class="main-nav">
+                <button id="nav-main" class="nav-button active">Principal</button>
+                <button id="nav-profile" class="nav-button">Perfil</button>
+                <button id="nav-history" class="nav-button">Histórico</button>
+                <button id="nav-suggestions" class="nav-button">Sugestões</button>
+            </div>
+            
+            <!-- Seção de Perfil -->
+            <section id="profile-section" class="content-section hidden">
                 <h2>Seu Perfil</h2>
                 <div class="profile-picture-container">
                     <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de perfil">
@@ -120,12 +128,59 @@
                 </div>
                 <div class="form-group">
                     <button id="save-profile-button" class="primary-button">Salvar Perfil</button>
-                    <button id="back-from-profile-button" class="secondary-button">Voltar</button>
+                </div>
+            </section>
+            
+            <!-- Seção de Histórico -->
+            <section id="history-section" class="content-section hidden">
+                <h2>Histórico de Viagens</h2>
+                <div id="ride-history" class="history-section">
+                    <p class="loading-message">Carregando histórico...</p>
+                </div>
+                
+                <!-- Histórico de avaliações -->
+                <div class="ratings-section">
+                    <h3>Minhas Avaliações</h3>
+                    <div id="user-ratings-history" class="ratings-history">
+                        <p class="loading-message">Carregando avaliações...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Seção de Sugestões -->
+            <section id="suggestions-section" class="content-section hidden">
+                <h2>Sugestões e Melhorias</h2>
+                <div class="form-group">
+                    <label for="suggestion-title">Título:</label>
+                    <input type="text" id="suggestion-title" placeholder="Título da sua sugestão">
+                </div>
+                <div class="form-group">
+                    <label for="suggestion-text">Descrição:</label>
+                    <textarea id="suggestion-text" rows="5" placeholder="Descreva sua sugestão ou melhoria para o aplicativo"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="suggestion-type">Tipo:</label>
+                    <select id="suggestion-type">
+                        <option value="improvement">Melhoria</option>
+                        <option value="bug">Correção de Bug</option>
+                        <option value="feature">Nova Funcionalidade</option>
+                        <option value="other">Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button id="submit-suggestion-button" class="primary-button">Enviar Sugestão</button>
+                </div>
+                
+                <div class="suggestions-list-container">
+                    <h3>Minhas Sugestões Enviadas</h3>
+                    <div id="suggestions-list" class="suggestions-list">
+                        <p class="loading-message">Carregando sugestões...</p>
+                    </div>
                 </div>
             </section>
             
             <!-- Interface do Passageiro -->
-            <div id="passenger-interface" class="interface-container hidden">
+            <div id="passenger-interface" class="interface-container content-section hidden">
                 <h2>Solicitar Corrida</h2>
                 <div class="form-group">
                     <label for="pickup-location">Onde você está?</label>
@@ -155,19 +210,10 @@
                 
                 <!-- Contato WhatsApp -->
                 <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
-                
-                <!-- Histórico de viagens -->
-                <div id="ride-history" class="history-section"></div>
-                
-                <!-- Histórico de avaliações -->
-                <div class="ratings-section">
-                    <h3>Minhas Avaliações</h3>
-                    <div id="user-ratings-history" class="ratings-history"></div>
-                </div>
             </div>
             
             <!-- Interface do Mototaxista -->
-            <div id="driver-interface" class="interface-container hidden">
+            <div id="driver-interface" class="interface-container content-section hidden">
                 <h2>Painel do Mototaxista</h2>
                 <div class="status-toggle">
                     <label for="driver-status">Status:</label>
@@ -198,16 +244,7 @@
                 </div>
                 
                 <!-- Contato WhatsApp -->
-                <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
-                
-                <!-- Histórico de viagens -->
-                <div id="ride-history" class="history-section"></div>
-                
-                <!-- Histórico de avaliações -->
-                <div class="ratings-section">
-                    <h3>Minhas Avaliações</h3>
-                    <div id="driver-ratings-history" class="ratings-history"></div>
-                </div>
+                <div id="whatsapp-contact-driver" class="whatsapp-container hidden"></div>
             </div>
         </section>
         
@@ -279,49 +316,192 @@
         const toggleThemeButton = document.getElementById('toggle-theme-button');
         if (toggleThemeButton) {
             toggleThemeButton.addEventListener('click', () => {
-                if (document.body.classList.contains('dark-theme')) {
-                    document.body.classList.remove('dark-theme');
-                    localStorage.setItem('theme', 'light');
-                } else {
-                    document.body.classList.add('dark-theme');
-                    localStorage.setItem('theme', 'dark');
-                }
+                document.body.classList.toggle('dark-theme');
+                localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
             });
         }
         
-        // Botões de perfil
-        const profileButton = document.getElementById('profile-button');
-        const backFromProfileButton = document.getElementById('back-from-profile-button');
-        const profileSection = document.getElementById('profile-section');
+        // Aplicar tema salvo
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.remove('dark-theme');
+        } else {
+            document.body.classList.add('dark-theme');
+        }
+        
+        // Navegação principal
+        const navMain = document.getElementById('nav-main');
+        const navProfile = document.getElementById('nav-profile');
+        const navHistory = document.getElementById('nav-history');
+        const navSuggestions = document.getElementById('nav-suggestions');
+        
         const passengerInterface = document.getElementById('passenger-interface');
         const driverInterface = document.getElementById('driver-interface');
+        const profileSection = document.getElementById('profile-section');
+        const historySection = document.getElementById('history-section');
+        const suggestionsSection = document.getElementById('suggestions-section');
         
-        if (profileButton && profileSection) {
-            profileButton.addEventListener('click', () => {
-                profileSection.classList.remove('hidden');
-                passengerInterface.classList.add('hidden');
-                driverInterface.classList.add('hidden');
+        function hideAllSections() {
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.add('hidden'));
+            
+            const navButtons = document.querySelectorAll('.nav-button');
+            navButtons.forEach(button => button.classList.remove('active'));
+        }
+        
+        navMain.addEventListener('click', () => {
+            hideAllSections();
+            navMain.classList.add('active');
+            
+            // Verificar qual interface mostrar
+            if (currentUser) {
+                db.collection("users").doc(currentUser.uid).get()
+                    .then((doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData.accountType === "user") {
+                                passengerInterface.classList.remove('hidden');
+                            } else {
+                                driverInterface.classList.remove('hidden');
+                            }
+                        }
+                    });
+            }
+        });
+        
+        navProfile.addEventListener('click', () => {
+            hideAllSections();
+            navProfile.classList.add('active');
+            profileSection.classList.remove('hidden');
+        });
+        
+        navHistory.addEventListener('click', () => {
+            hideAllSections();
+            navHistory.classList.add('active');
+            historySection.classList.remove('hidden');
+            
+            // Carregar histórico
+            if (currentUser) {
+                db.collection("users").doc(currentUser.uid).get()
+                    .then((doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            loadRideHistory(userData.accountType);
+                            
+                            // Carregar avaliações
+                            const ratingsContainer = document.getElementById('user-ratings-history');
+                            if (ratingsContainer && ratingService) {
+                                ratingService.loadUserRatingsHistory(currentUser.uid, ratingsContainer);
+                            }
+                        }
+                    });
+            }
+        });
+        
+        navSuggestions.addEventListener('click', () => {
+            hideAllSections();
+            navSuggestions.classList.add('active');
+            suggestionsSection.classList.remove('hidden');
+            
+            // Carregar sugestões
+            loadUserSuggestions();
+        });
+        
+        // Botão de enviar sugestão
+        const submitSuggestionButton = document.getElementById('submit-suggestion-button');
+        if (submitSuggestionButton) {
+            submitSuggestionButton.addEventListener('click', () => {
+                const title = document.getElementById('suggestion-title').value;
+                const text = document.getElementById('suggestion-text').value;
+                const type = document.getElementById('suggestion-type').value;
+                
+                if (!title || !text) {
+                    alert('Por favor, preencha o título e a descrição da sugestão.');
+                    return;
+                }
+                
+                if (currentUser) {
+                    db.collection('suggestions').add({
+                        userId: currentUser.uid,
+                        userName: document.getElementById('user-name').textContent,
+                        title: title,
+                        text: text,
+                        type: type,
+                        status: 'pending',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                    .then(() => {
+                        alert('Sugestão enviada com sucesso!');
+                        document.getElementById('suggestion-title').value = '';
+                        document.getElementById('suggestion-text').value = '';
+                        loadUserSuggestions();
+                    })
+                    .catch(error => {
+                        console.error('Erro ao enviar sugestão:', error);
+                        alert('Erro ao enviar sugestão: ' + error.message);
+                    });
+                }
             });
         }
         
-        if (backFromProfileButton && profileSection) {
-            backFromProfileButton.addEventListener('click', () => {
-                profileSection.classList.add('hidden');
-                // Verificar qual interface mostrar
-                if (currentUser) {
-                    db.collection("users").doc(currentUser.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                const userData = doc.data();
-                                if (userData.accountType === "user") {
-                                    passengerInterface.classList.remove('hidden');
-                                } else {
-                                    driverInterface.classList.remove('hidden');
-                                }
-                            }
-                        });
-                }
-            });
+        // Função para carregar sugestões do usuário
+        function loadUserSuggestions() {
+            const suggestionsList = document.getElementById('suggestions-list');
+            if (!suggestionsList || !currentUser) return;
+            
+            suggestionsList.innerHTML = '<p class="loading-message">Carregando sugestões...</p>';
+            
+            db.collection('suggestions')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('createdAt', 'desc')
+                .get()
+                .then(querySnapshot => {
+                    suggestionsList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        suggestionsList.innerHTML = '<p class="empty-message">Você ainda não enviou nenhuma sugestão.</p>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach(doc => {
+                        const suggestion = doc.data();
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.className = 'suggestion-item';
+                        
+                        const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                        
+                        let statusText = 'Pendente';
+                        let statusClass = 'status-pending';
+                        
+                        if (suggestion.status === 'approved') {
+                            statusText = 'Aprovada';
+                            statusClass = 'status-approved';
+                        } else if (suggestion.status === 'rejected') {
+                            statusText = 'Rejeitada';
+                            statusClass = 'status-rejected';
+                        } else if (suggestion.status === 'implemented') {
+                            statusText = 'Implementada';
+                            statusClass = 'status-implemented';
+                        }
+                        
+                        suggestionItem.innerHTML = `
+                            <div class="suggestion-header">
+                                <h4>${suggestion.title}</h4>
+                                <span class="suggestion-date">${date}</span>
+                            </div>
+                            <p class="suggestion-text">${suggestion.text}</p>
+                            <div class="suggestion-footer">
+                                <span class="suggestion-type">${suggestion.type}</span>
+                                <span class="suggestion-status ${statusClass}">${statusText}</span>
+                            </div>
+                        `;
+                        
+                        suggestionsList.appendChild(suggestionItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar sugestões:', error);
+                    suggestionsList.innerHTML = '<p class="error-message">Erro ao carregar sugestões.</p>';
+                });
         }
     </script>
 </body>

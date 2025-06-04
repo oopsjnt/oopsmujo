@@ -4,159 +4,143 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
 }
 
+/* Variáveis de cores - Tema Claro */
 :root {
-    /* Variáveis de cores para tema claro */
     --bg-color: #f5f5f5;
     --card-bg: #ffffff;
     --text-color: #333333;
-    --primary-color: #4a90e2;
-    --primary-hover: #357abd;
-    --secondary-color: #f5f5f5;
-    --secondary-hover: #e5e5e5;
+    --primary-color: #0f3460;
+    --secondary-color: #e94560;
     --border-color: #dddddd;
-    --shadow-color: rgba(0, 0, 0, 0.1);
     --success-color: #4caf50;
-    --error-color: #e53935;
-    --warning-color: #f39c12;
-    --info-color: #2196f3;
-    --header-bg: #4a90e2;
-    --header-text: #ffffff;
+    --warning-color: #ff9800;
+    --danger-color: #f44336;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Tema escuro */
+/* Tema Escuro */
 .dark-theme {
     --bg-color: #1a1a2e;
     --card-bg: #16213e;
-    --text-color: #e6e6e6;
-    --primary-color: #0f3460;
-    --primary-hover: #1a4b84;
-    --secondary-color: #2a2a4a;
-    --secondary-hover: #3a3a5a;
-    --border-color: #444444;
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --success-color: #388e3c;
-    --error-color: #d32f2f;
-    --warning-color: #f57c00;
-    --info-color: #1976d2;
-    --header-bg: #0f3460;
-    --header-text: #ffffff;
+    --text-color: #e1e1e1;
+    --border-color: #333a4d;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    line-height: 1.6;
-    transition: background-color 0.3s, color 0.3s;
+    min-height: 100vh;
+    padding: 20px 0;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0 20px;
 }
 
 header {
     text-align: center;
     margin-bottom: 30px;
-    padding: 20px 0;
-    background-color: var(--header-bg);
-    color: var(--header-text);
-    border-radius: 8px;
-    box-shadow: 0 2px 5px var(--shadow-color);
     position: relative;
 }
 
-h1 {
-    font-size: 2.2rem;
+header h1 {
+    color: var(--primary-color);
     margin-bottom: 10px;
 }
 
-h2 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
-    color: var(--primary-color);
-}
-
-h3 {
-    font-size: 1.4rem;
-    margin-bottom: 15px;
+header p {
     color: var(--text-color);
+    opacity: 0.8;
 }
 
-.hidden {
-    display: none !important;
-}
-
-/* Botão de alternar tema */
 .theme-toggle {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: transparent;
+    top: 0;
+    right: 0;
+    background: none;
     border: none;
-    color: var(--header-text);
-    font-size: 1.5rem;
+    font-size: 24px;
     cursor: pointer;
     padding: 5px;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.theme-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
 .dark-theme .light-icon {
-    display: none;
+    display: inline;
 }
 
 .dark-theme .dark-icon {
-    display: inline;
-}
-
-.light-icon {
-    display: inline;
-}
-
-.dark-icon {
     display: none;
 }
 
-/* Estilos dos Formulários */
-.form-container {
+.light-icon {
+    display: none;
+}
+
+.dark-icon {
+    display: inline;
+}
+
+/* Seção de Autenticação */
+.auth-section {
     background-color: var(--card-bg);
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px var(--shadow-color);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
     margin-bottom: 20px;
 }
 
-.form-group {
+.tabs {
+    display: flex;
     margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+.tab.active {
+    opacity: 1;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.form-container {
+    padding: 10px 0;
+}
+
+.form-group {
+    margin-bottom: 15px;
 }
 
 label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: 500;
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="tel"],
-select {
+input, select, textarea {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 16px;
+    border-radius: 5px;
     background-color: var(--card-bg);
     color: var(--text-color);
 }
@@ -166,90 +150,48 @@ select {
     gap: 20px;
 }
 
-.radio-group label {
-    display: inline;
-    margin-left: 5px;
+.radio-group input {
+    width: auto;
+    margin-right: 5px;
 }
 
-/* Botões */
 .primary-button {
     background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 4px;
+    padding: 10px 15px;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     width: 100%;
-    transition: background-color 0.3s;
-}
-
-.primary-button:hover {
-    background-color: var(--primary-hover);
 }
 
 .secondary-button {
-    background-color: var(--secondary-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    padding: 8px 15px;
-    border-radius: 4px;
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 10px 15px;
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s;
-}
-
-.secondary-button:hover {
-    background-color: var(--secondary-hover);
-}
-
-/* Abas de Login/Cadastro */
-.tabs {
-    display: flex;
-    margin-bottom: 20px;
-}
-
-.tab {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    background-color: var(--secondary-color);
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
     font-weight: 500;
-    transition: background-color 0.3s, color 0.3s;
-    color: var(--text-color);
 }
 
-.tab:first-child {
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
+.hidden {
+    display: none !important;
 }
 
-.tab:last-child {
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
-}
-
-.tab.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* Seção do App */
+/* Seção Principal do App */
 .app-section {
     background-color: var(--card-bg);
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px var(--shadow-color);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
 }
 
 .user-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--border-color);
@@ -273,14 +215,40 @@ select {
     gap: 10px;
 }
 
-/* Seção de Perfil */
-.profile-section {
-    background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 8px;
+.main-nav {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nav-button {
+    padding: 10px 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+.nav-button.active {
+    opacity: 1;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.content-section {
     margin-bottom: 20px;
 }
 
+.content-section h2 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+
+/* Perfil */
 .profile-picture-container {
     display: flex;
     flex-direction: column;
@@ -288,331 +256,244 @@ select {
     margin-bottom: 20px;
 }
 
-#profile-picture-preview {
-    width: 120px;
-    height: 120px;
+.profile-picture-container img {
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 10px;
-    border: 3px solid var(--primary-color);
+    border: 2px solid var(--primary-color);
 }
 
 .upload-button {
     background-color: var(--primary-color);
     color: white;
     padding: 8px 15px;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
-    transition: background-color 0.3s;
-}
-
-.upload-button:hover {
-    background-color: var(--primary-hover);
 }
 
 /* Interface do Passageiro */
-.status-container {
-    background-color: var(--secondary-color);
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
-    border-left: 4px solid var(--primary-color);
-}
-
-/* Status de localização */
 .status-text {
-    margin-top: 8px;
-    padding: 8px;
-    border-radius: 4px;
-    background-color: var(--info-color);
-    color: white;
+    margin-top: 5px;
+    font-size: 14px;
 }
 
-.status-text.error {
-    background-color: var(--error-color);
-}
-
-/* Botão de usar localização atual */
-#use-current-location {
-    margin-top: 8px;
-    width: auto;
-}
-
-/* Mototaxistas próximos */
 .nearby-drivers {
     margin-top: 20px;
-    margin-bottom: 20px;
 }
 
-.drivers-list {
-    margin-top: 10px;
+.driver-card {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.driver-item {
-    background-color: var(--secondary-color);
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    border-left: 3px solid var(--primary-color);
-}
-
-.driver-profile-small {
+.driver-info {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 8px;
 }
 
-.driver-profile-small img, .passenger-profile-small img {
+.driver-info img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.driver-info {
-    flex-grow: 1;
+.driver-details {
+    flex: 1;
 }
 
 .driver-name {
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.driver-distance {
-    color: var(--text-color);
-    opacity: 0.7;
-    font-size: 14px;
+    font-weight: 500;
 }
 
 .driver-rating {
-    color: var(--warning-color);
     font-size: 14px;
-    margin-top: 4px;
+    color: var(--warning-color);
 }
 
-.info-message {
-    color: var(--text-color);
-    opacity: 0.7;
-    text-align: center;
-    padding: 10px;
-    font-style: italic;
+.driver-distance {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.status-container {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.status-container h3 {
+    margin-bottom: 10px;
+}
+
+.ride-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
 }
 
 /* Interface do Mototaxista */
 .status-toggle {
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
-}
-
-.status-toggle label {
-    margin-right: 10px;
-    margin-bottom: 0;
+    gap: 10px;
 }
 
 .status-toggle select {
     width: auto;
+    padding: 8px;
 }
 
 .rides-container {
-    background-color: var(--secondary-color);
-    padding: 15px;
-    border-radius: 8px;
     margin-bottom: 20px;
 }
 
 .rides-list {
-    max-height: 300px;
-    overflow-y: auto;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
 }
 
 .ride-item {
-    background-color: var(--card-bg);
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 3px var(--shadow-color);
-}
-
-.passenger-profile-small {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.ride-item:last-child {
-    margin-bottom: 0;
-}
-
-.ride-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.empty-message {
-    color: var(--text-color);
-    opacity: 0.7;
-    text-align: center;
-    padding: 20px 0;
-}
-
-.current-ride {
-    background-color: var(--secondary-color);
-    padding: 20px;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
-}
-
-.ride-details {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
     margin-bottom: 15px;
 }
 
-/* Contato WhatsApp */
-.whatsapp-container {
-    margin: 15px 0;
-    text-align: center;
+.ride-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
-.whatsapp-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background-color: #25D366;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.3s;
+.ride-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
-.whatsapp-link:hover {
-    background-color: #128C7E;
+.ride-time {
+    font-size: 14px;
+    opacity: 0.8;
 }
 
-.whatsapp-link img {
-    width: 24px;
-    height: 24px;
+.ride-locations {
+    margin-bottom: 10px;
 }
 
-/* Histórico de viagens */
+.ride-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.current-ride {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.ride-details p {
+    margin-bottom: 8px;
+}
+
+/* Histórico */
 .history-section {
-    margin-top: 30px;
-}
-
-.history-list {
-    margin-top: 15px;
+    margin-bottom: 20px;
 }
 
 .history-item {
-    background-color: var(--secondary-color);
+    background-color: var(--bg-color);
+    border-radius: 8px;
     padding: 15px;
-    border-radius: 6px;
     margin-bottom: 10px;
-    border-left: 3px solid var(--primary-color);
 }
 
-.history-item.status-completed {
-    border-left-color: var(--success-color);
-}
-
-.history-item.status-cancelled {
-    border-left-color: var(--error-color);
-}
-
-/* Banner de instalação do PWA */
-.pwa-banner {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--primary-color);
-    color: white;
-    padding: 15px;
+.history-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 -2px 10px var(--shadow-color);
-    z-index: 1000;
+    margin-bottom: 10px;
 }
 
-.pwa-banner p {
-    margin: 0;
-    flex-grow: 1;
+.history-date {
+    font-size: 14px;
+    opacity: 0.8;
 }
 
-.pwa-banner .primary-button,
-.pwa-banner .secondary-button {
-    width: auto;
-    margin-left: 10px;
+.history-status {
+    font-weight: 500;
 }
 
-.pwa-banner .primary-button {
-    background-color: white;
-    color: var(--primary-color);
+.status-completed {
+    color: var(--success-color);
 }
 
-.pwa-banner .secondary-button {
-    background-color: transparent;
-    color: white;
-    border-color: white;
+.status-cancelled {
+    color: var(--danger-color);
 }
 
-/* Estilos para avaliações */
-.user-rating {
+.history-details {
+    margin-bottom: 10px;
+}
+
+.history-rating {
     display: flex;
     align-items: center;
-    margin-right: 15px;
-}
-
-.average-rating {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    gap: 10px;
+    font-size: 14px;
 }
 
 .rating-stars {
     color: var(--warning-color);
-    font-size: 16px;
 }
 
-.rating-value {
-    font-weight: bold;
-    font-size: 16px;
-}
-
-.rating-count {
-    color: var(--text-color);
-    opacity: 0.7;
-    font-size: 12px;
-}
-
+/* Avaliações */
 .ratings-section {
     margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
+}
+
+.ratings-section h3 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
 }
 
 .ratings-history {
-    margin-top: 15px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
 }
 
 .rating-item {
-    background-color: var(--secondary-color);
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    border-left: 3px solid var(--warning-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.rating-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
 .rating-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.rating-date {
+    font-size: 14px;
+    opacity: 0.8;
 }
 
 .rating-author {
@@ -622,62 +503,198 @@ select {
 
 .rating-comment {
     font-style: italic;
-    color: var(--text-color);
+    opacity: 0.9;
 }
 
-.rating-date {
-    color: var(--text-color);
-    opacity: 0.7;
-    font-size: 12px;
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.loading-message {
-    color: var(--primary-color);
+.rating-value {
+    font-weight: 500;
+}
+
+.rating-count {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* Mensagens */
+.loading-message, .empty-message, .error-message {
     text-align: center;
-    padding: 10px;
+    padding: 20px;
+    opacity: 0.7;
 }
 
 .error-message {
-    color: var(--error-color);
+    color: var(--danger-color);
+}
+
+/* WhatsApp */
+.whatsapp-container {
+    margin-top: 20px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
     text-align: center;
-    padding: 10px;
+}
+
+.whatsapp-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #25D366;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.whatsapp-button img {
+    width: 24px;
+    height: 24px;
+}
+
+/* PWA Banner */
+.pwa-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+}
+
+.pwa-banner p {
+    margin-right: 10px;
+}
+
+.pwa-banner button {
+    white-space: nowrap;
+}
+
+/* Sugestões */
+.suggestions-list-container {
+    margin-top: 30px;
+}
+
+.suggestions-list-container h3 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+
+.suggestions-list {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.suggestion-item {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.suggestion-date {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.suggestion-text {
+    margin-bottom: 10px;
+}
+
+.suggestion-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.suggestion-type {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.suggestion-status {
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.status-pending {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.status-approved {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.status-rejected {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.status-implemented {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* Responsividade */
 @media (max-width: 600px) {
-    .container {
-        padding: 10px;
-    }
-    
-    header {
-        padding: 15px 0;
-    }
-    
-    h1 {
-        font-size: 1.8rem;
-    }
-    
-    h2 {
-        font-size: 1.5rem;
-    }
-    
-    .form-container, .app-section {
-        padding: 15px;
-    }
-    
-    .radio-group {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
     .user-info {
         flex-direction: column;
-        gap: 10px;
         align-items: flex-start;
+        gap: 15px;
     }
     
     .user-actions {
         width: 100%;
-        justify-content: space-between;
+    }
+    
+    .user-actions button {
+        flex: 1;
+    }
+    
+    .ride-buttons {
+        flex-direction: column;
+    }
+    
+    .pwa-banner {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .pwa-banner p {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .pwa-banner button {
+        width: 100%;
     }
 }

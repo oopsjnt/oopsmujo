@@ -180,7 +180,9 @@ window.RatingService = (function() {
                 resolve({
                     submitted: true,
                     rating: selectedRating,
-                    comment: commentInput.value.trim()
+                    comment: commentInput.value.trim(),
+                    rideId: rideId,
+                    targetUserId: targetUserId
                 });
             });
             
