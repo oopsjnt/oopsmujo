@@ -1,7 +1,5 @@
 // Nome do cache
-const CACHE_NAME = 'oops-transportes-caramujo-v1';
-
-// Arquivos para cache
+const CACHE_NAME = 'oops-transportes-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,9 +7,18 @@ const urlsToCache = [
   '/script.js',
   '/geo-service.js',
   '/rating-service.js',
+  '/admin-service.js',
+  '/manifest.json',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png',
+  '/icons/icon-152x152.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-384x384.png',
   '/icons/icon-512x512.png',
-  '/icons/default-profile.png',
-  '/icons/whatsapp.png'
+  '/icons/whatsapp.png',
+  '/icons/default-profile.png'
 ];
 
 // Instalação do service worker
@@ -54,13 +61,7 @@ self.addEventListener('fetch', event => {
         // Clone da requisição
         const fetchRequest = event.request.clone();
         
-        // Requisições para o Firebase não devem ser cacheadas
-        if (fetchRequest.url.includes('firestore.googleapis.com') || 
-            fetchRequest.url.includes('firebase') ||
-            fetchRequest.url.includes('nominatim.openstreetmap.org')) {
-          return fetch(fetchRequest);
-        }
-        
+        // Tenta buscar online
         return fetch(fetchRequest).then(
           response => {
             // Verifica se a resposta é válida
@@ -71,11 +72,17 @@ self.addEventListener('fetch', event => {
             // Clone da resposta
             const responseToCache = response.clone();
             
+            // Adiciona ao cache
             caches.open(CACHE_NAME)
               .then(cache => {
-                cache.put(event.request, responseToCache);
+                // Não armazena em cache requisições de API ou Firebase
+                if (!event.request.url.includes('firestore') && 
+                    !event.request.url.includes('googleapis') &&
+                    !event.request.url.includes('firebase')) {
+                  cache.put(event.request, responseToCache);
+                }
               });
-              
+            
             return response;
           }
         );
@@ -85,28 +92,28 @@ self.addEventListener('fetch', event => {
 
 // Evento de notificação push
 self.addEventListener('push', event => {
-  const title = 'Oops Transportes Caramujo';
+  const data = event.data.json();
   const options = {
-    body: event.data.text(),
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    vibrate: [100, 50, 100],
+    body: data.body,
+    icon: 'icons/icon-192x192.png',
+    badge: 'icons/icon-72x72.png',
     data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
+      url: data.url
     }
   };
   
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
-// Evento de clique na notificação
+// Clique na notificação
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   
-  event.waitUntil(
-    clients.openWindow('/')
-  );
+  if (event.notification.data && event.notification.data.url) {
+    event.waitUntil(
+      clients.openWindow(event.notification.data.url)
+    );
+  }
 });

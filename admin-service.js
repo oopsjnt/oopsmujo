@@ -3,10 +3,10 @@ class AdminService {
     constructor(firestore, storage) {
         this.db = firestore;
         this.storage = storage;
-        this.usersCollection = this.db.collection('users');
-        this.ridesCollection = this.db.collection('rides');
-        this.suggestionsCollection = this.db.collection('suggestions');
-        this.settingsCollection = this.db.collection('settings');
+        this.usersCollection = this.db.collection("users");
+        this.ridesCollection = this.db.collection("rides");
+        this.suggestionsCollection = this.db.collection("suggestions");
+        this.settingsCollection = this.db.collection("settings");
     }
 
     // Verifica se o usuário é administrador
@@ -169,9 +169,9 @@ class AdminService {
                 recentRides.push({
                     id: doc.id,
                     type: 'ride',
-                    status: rideData.status,
+                    status: rideData.status || 'unknown',
                     timestamp: rideData.createdAt,
-                    details: `${rideData.passengerName} → ${rideData.destination}`
+                    details: `${rideData.passengerName || 'Desconhecido'} → ${rideData.destination || 'Desconhecido'}`
                 });
             });
             
@@ -187,15 +187,21 @@ class AdminService {
                 recentSuggestions.push({
                     id: doc.id,
                     type: 'suggestion',
-                    status: suggestionData.status,
+                    status: suggestionData.status || 'pending',
                     timestamp: suggestionData.createdAt,
-                    details: suggestionData.title
+                    details: suggestionData.title || 'Sem título'
                 });
             });
             
             // Combina e ordena por timestamp
             const allActivities = [...recentRides, ...recentSuggestions]
-                .sort((a, b) => b.timestamp - a.timestamp)
+                .filter(activity => activity.timestamp) // Filtra itens sem timestamp
+                .sort((a, b) => {
+                    // Verifica se os timestamps existem antes de comparar
+                    if (!a.timestamp) return 1;
+                    if (!b.timestamp) return -1;
+                    return b.timestamp - a.timestamp;
+                })
                 .slice(0, limit);
             
             return allActivities;
@@ -226,14 +232,23 @@ class AdminService {
                 const userData = doc.data();
                 
                 // Aplica busca por termo se fornecido
-                if (searchTerm && !userData.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-                    !userData.email.toLowerCase().includes(searchTerm.toLowerCase())) {
+                if (searchTerm && !userData.name?.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                    !userData.email?.toLowerCase().includes(searchTerm.toLowerCase())) {
                     return;
                 }
                 
                 users.push({
                     id: doc.id,
-                    ...userData
+                    name: userData.name || 'Sem nome',
+                    email: userData.email || 'Sem email',
+                    phone: userData.phone || 'Sem telefone',
+                    accountType: userData.accountType || 'user',
+                    status: userData.status || 'inactive',
+                    pictureUrl: userData.pictureUrl || null,
+                    averageRating: userData.averageRating || 0,
+                    ratingCount: userData.ratingCount || 0,
+                    blocked: userData.blocked || false,
+                    isAdmin: userData.isAdmin || false
                 });
             });
             
@@ -260,14 +275,17 @@ class AdminService {
     // Lista todas as corridas com filtros
     async listRides(filter = 'all', searchTerm = '') {
         try {
-            let query = this.ridesCollection.orderBy('createdAt', 'desc');
+            let query = this.ridesCollection;
             
             // Aplica filtro
             if (filter !== 'all') {
-                query = this.ridesCollection.where('status', '==', filter).orderBy('createdAt', 'desc');
+                query = query.where('status', '==', filter);
             }
             
-            const ridesSnapshot = await query.get();
+            // Ordena por data de criação
+            query = query.orderBy('createdAt', 'desc');
+            
+            const ridesSnapshot = await query.limit(50).get();
             
             const rides = [];
             ridesSnapshot.forEach(doc => {
@@ -284,7 +302,15 @@ class AdminService {
                 
                 rides.push({
                     id: doc.id,
-                    ...rideData
+                    passengerName: rideData.passengerName || 'Desconhecido',
+                    driverName: rideData.driverName || 'Nenhum',
+                    pickupLocation: rideData.pickupLocation || 'Não especificado',
+                    destination: rideData.destination || 'Não especificado',
+                    status: rideData.status || 'unknown',
+                    createdAt: rideData.createdAt,
+                    passengerPictureUrl: rideData.passengerPictureUrl || null,
+                    driverPictureUrl: rideData.driverPictureUrl || null,
+                    cancelReason: rideData.cancelReason || null
                 });
             });
             
@@ -298,14 +324,17 @@ class AdminService {
     // Lista todas as sugestões com filtros
     async listSuggestions(filter = 'all', searchTerm = '') {
         try {
-            let query = this.suggestionsCollection.orderBy('createdAt', 'desc');
+            let query = this.suggestionsCollection;
             
             // Aplica filtro
             if (filter !== 'all') {
-                query = this.suggestionsCollection.where('status', '==', filter).orderBy('createdAt', 'desc');
+                query = query.where('status', '==', filter);
             }
             
-            const suggestionsSnapshot = await query.get();
+            // Ordena por data de criação
+            query = query.orderBy('createdAt', 'desc');
+            
+            const suggestionsSnapshot = await query.limit(50).get();
             
             const suggestions = [];
             suggestionsSnapshot.forEach(doc => {
@@ -321,7 +350,12 @@ class AdminService {
                 
                 suggestions.push({
                     id: doc.id,
-                    ...suggestionData
+                    title: suggestionData.title || 'Sem título',
+                    text: suggestionData.text || 'Sem conteúdo',
+                    type: suggestionData.type || 'improvement',
+                    status: suggestionData.status || 'pending',
+                    userName: suggestionData.userName || 'Usuário anônimo',
+                    createdAt: suggestionData.createdAt
                 });
             });
             

@@ -164,6 +164,7 @@ let ridesListener = null;
 let userListener = null;
 let rideTimeout = 5; // Padrão, será carregado das configurações
 let currentRideIdToCancel = null;
+let deferredPrompt = null; // Para PWA install banner
 
 // --- Funções de Autenticação ---
 
@@ -172,10 +173,16 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
         await loadUserData(user.uid);
-        if (currentUserData.isAdmin) {
+        if (currentUserData && currentUserData.isAdmin) {
             showAdminSection();
-        } else {
+        } else if (currentUserData) {
             showAppSection();
+        } else {
+            // Caso onde o usuário existe no Auth mas não no Firestore
+            console.error("Usuário autenticado mas dados não encontrados no Firestore.");
+            showError("Erro ao carregar seus dados. Tente fazer login novamente.");
+            auth.signOut();
+            showAuthSection();
         }
         loadAppSettings(); // Carrega configurações do app
     } else {
@@ -193,18 +200,20 @@ async function loadUserData(userId) {
         if (userDoc.exists) {
             currentUserData = { id: userDoc.id, ...userDoc.data() };
             updateUserInfoUI();
-            if (currentUserData.accountType === "driver") {
-                setupDriverListeners();
-            } else if (currentUserData.accountType === "user") {
-                setupPassengerListeners();
+            if (!currentUserData.isAdmin) {
+                if (currentUserData.accountType === "driver") {
+                    setupDriverListeners();
+                } else if (currentUserData.accountType === "user") {
+                    setupPassengerListeners();
+                }
             }
         } else {
-            console.error("Documento do usuário não encontrado no Firestore.");
-            auth.signOut(); // Desloga se não encontrar dados
+            currentUserData = null; // Garante que currentUserData seja null se não encontrar
         }
     } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
         showError("Erro ao carregar seus dados. Tente novamente.");
+        currentUserData = null;
     }
 }
 
@@ -239,7 +248,8 @@ registerButton.addEventListener("click", async () => {
     const phone = registerPhone.value;
     const email = registerEmail.value;
     const password = registerPassword.value;
-    const accountType = document.querySelector("input[name=\"account-type\"]:checked").value;
+    const accountTypeRadio = document.querySelector("input[name=\"account-type\"]:checked");
+    const accountType = accountTypeRadio ? accountTypeRadio.value : null;
 
     if (!name || !phone || !email || !password || !accountType) {
         showError("Preencha todos os campos.");
@@ -337,13 +347,13 @@ function clearUI() {
     registerButton.disabled = true;
     pickupLocationInput.value = "";
     destinationInput.value = "";
-    ridesListContainer.innerHTML = 
+    ridesListContainer.innerHTML =
         '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
-    rideHistoryContainer.innerHTML = 
+    rideHistoryContainer.innerHTML =
         '<p class="empty-message">Nenhuma corrida no histórico.</p>';
-    userRatingsHistoryContainer.innerHTML = 
+    userRatingsHistoryContainer.innerHTML =
         '<p class="empty-message">Nenhuma avaliação recebida.</p>';
-    suggestionsListContainer.innerHTML = 
+    suggestionsListContainer.innerHTML =
         '<p class="empty-message">Nenhuma sugestão enviada.</p>';
     nearbyDriversContainer.innerHTML = "";
     rideStatusContainer.classList.add("hidden");
@@ -355,7 +365,20 @@ function clearUI() {
     suggestionTitleInput.value = "";
     suggestionTextInput.value = "";
     suggestionTypeSelect.value = "improvement";
-    // Limpar admin UI também se necessário
+    // Limpar admin UI
+    totalUsersDisplay.textContent = '-';
+    activeDriversDisplay.textContent = '-';
+    ridesTodayDisplay.textContent = '-';
+    totalRidesDisplay.textContent = '-';
+    activityListContainer.innerHTML = '';
+    usersListContainer.innerHTML = '';
+    adminRidesListContainer.innerHTML = '';
+    adminSuggestionsListContainer.innerHTML = '';
+    userSearchInput.value = '';
+    rideSearchInput.value = '';
+    suggestionSearchInput.value = '';
+    priceTableUploadInput.value = '';
+    timeoutSettingInput.value = '5';
 }
 
 // --- Navegação e Tabs ---
@@ -401,7 +424,7 @@ navButtons.forEach(button => {
         const targetSectionId = button.id.replace("nav-", "") + "-section";
         setActiveNav(button.id);
         showContentSection(targetSectionId);
-        
+
         // Carrega dados específicos da seção
         if (targetSectionId === "history-section") {
             loadRideHistory();
@@ -410,6 +433,8 @@ navButtons.forEach(button => {
             loadUserSuggestions();
         } else if (targetSectionId === "prices-section") {
             loadPriceTable();
+        } else if (targetSectionId === "profile-section") {
+            loadProfileData();
         }
     });
 });
@@ -473,7 +498,7 @@ requestRideButton.addEventListener("click", async () => {
     try {
         let pickupCoords = null;
         // Tenta obter coordenadas se a localização atual foi usada
-        if (geoService.currentPosition && pickupLocationInput.value.includes("obtida")) { // Ajustar esta verificação
+        if (geoService.currentPosition && pickupLocationInput.value.includes(geoService.currentPosition.latitude.toFixed(5))) { // Verifica se o endereço contém as coordenadas
              pickupCoords = {
                 latitude: geoService.currentPosition.latitude,
                 longitude: geoService.currentPosition.longitude
@@ -482,9 +507,9 @@ requestRideButton.addEventListener("click", async () => {
 
         const rideData = {
             passengerId: currentUser.uid,
-            passengerName: currentUserData.name,
-            passengerPhone: currentUserData.phone,
-            passengerPictureUrl: currentUserData.pictureUrl || null, // Adicionado
+            passengerName: currentUserData.name || "Passageiro",
+            passengerPhone: currentUserData.phone || null,
+            passengerPictureUrl: currentUserData.pictureUrl || null, // Corrigido
             pickupLocation: pickupLocation,
             destination: destination,
             pickupCoords: pickupCoords, // Pode ser null
@@ -511,7 +536,12 @@ requestRideButton.addEventListener("click", async () => {
 
     } catch (error) {
         console.error("Erro ao solicitar corrida:", error);
-        showError(`Erro ao solicitar corrida: ${error.message}`);
+        // Verifica se o erro é de dados inválidos (como undefined)
+        if (error.message && error.message.includes("invalid data")) {
+             showError("Erro ao solicitar corrida: Verifique se seus dados de perfil (nome, telefone) estão completos.");
+        } else {
+            showError(`Erro ao solicitar corrida: ${error.message}`);
+        }
     }
 });
 
@@ -602,7 +632,7 @@ async function checkActiveRide(showErrorMsg = true) {
             const rideData = rideDoc.data();
             // Verifica se a corrida não é muito antiga (ex: mais de 2 horas)
             const twoHoursAgo = firebase.firestore.Timestamp.now().seconds - (2 * 60 * 60);
-            if (rideData.createdAt.seconds > twoHoursAgo) {
+            if (rideData.createdAt && rideData.createdAt.seconds > twoHoursAgo) {
                  showRideStatus(rideData.status, rideDoc.id, rideData);
                  monitorRideStatus(rideDoc.id);
                  return rideDoc.id;
@@ -630,12 +660,12 @@ async function checkActiveRide(showErrorMsg = true) {
 cancelRideButton.addEventListener("click", () => {
     currentRideIdToCancel = cancelRideButton.dataset.rideId;
     if (!currentRideIdToCancel) return;
-    
+
     // Limpa seleções anteriores e esconde textarea
     cancelReasonRadios.forEach(radio => radio.checked = false);
     otherReasonTextarea.classList.add('hidden');
     otherReasonTextarea.value = '';
-    
+
     cancelFeedbackModal.classList.remove("hidden");
 });
 
@@ -664,7 +694,7 @@ submitCancelFeedbackButton.addEventListener("click", async () => {
     if (cancelReason === "other") {
         cancelReason = otherReasonTextarea.value.trim() || "Outro motivo (não especificado)";
     }
-    
+
     if (!selectedReasonRadio && cancelReason === "Não especificado") {
         showError("Por favor, selecione um motivo para o cancelamento.");
         return;
@@ -734,6 +764,14 @@ function startListeningForRides() {
     if (ridesListener) {
         ridesListener(); // Cancela listener anterior
     }
+    if (currentUserData?.status !== 'available') {
+        ridesListContainer.innerHTML =
+            '<p class="empty-message">Você está indisponível. Mude seu status para ver corridas.</p>';
+        return;
+    }
+    
+    ridesListContainer.innerHTML = '<p class="loading-message">Procurando corridas...</p>';
+    
     const ridesRef = db.collection("rides");
     ridesListener = ridesRef
         .where("status", "==", "pending")
@@ -746,7 +784,7 @@ function startListeningForRides() {
             displayAvailableRides(rides);
         }, (error) => {
             console.error("Erro ao monitorar corridas disponíveis:", error);
-            ridesListContainer.innerHTML = 
+            ridesListContainer.innerHTML =
                 '<p class="error-message">Erro ao carregar corridas. Tente novamente.</p>';
         });
 }
@@ -757,7 +795,7 @@ function stopListeningForRides() {
         ridesListener();
         ridesListener = null;
     }
-    ridesListContainer.innerHTML = 
+    ridesListContainer.innerHTML =
         '<p class="empty-message">Você está indisponível. Mude seu status para ver corridas.</p>';
 }
 
@@ -765,7 +803,7 @@ function stopListeningForRides() {
 function displayAvailableRides(rides) {
     ridesListContainer.innerHTML = ""; // Limpa a lista
     if (rides.length === 0) {
-        ridesListContainer.innerHTML = 
+        ridesListContainer.innerHTML =
             '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
         return;
     }
@@ -773,17 +811,17 @@ function displayAvailableRides(rides) {
     rides.forEach(ride => {
         const rideElement = document.createElement("div");
         rideElement.classList.add("ride-item");
-        
+
         const createdAt = ride.createdAt ? ride.createdAt.toDate().toLocaleTimeString("pt-BR") : "N/A";
-        
+
         rideElement.innerHTML = `
             <div class="ride-header">
                 <strong>Passageiro:</strong> ${ride.passengerName || "Desconhecido"}
                 <span class="ride-time">Solicitada às ${createdAt}</span>
             </div>
             <div class="ride-locations">
-                <p><strong>Partida:</strong> ${ride.pickupLocation}</p>
-                <p><strong>Destino:</strong> ${ride.destination}</p>
+                <p><strong>Partida:</strong> ${ride.pickupLocation || 'N/A'}</p>
+                <p><strong>Destino:</strong> ${ride.destination || 'N/A'}</p>
             </div>
             <div class="ride-buttons">
                 <button class="primary-button accept-ride-button" data-ride-id="${ride.id}">Aceitar</button>
@@ -830,13 +868,13 @@ async function acceptRide(rideId) {
             transaction.update(rideRef, {
                 status: "accepted",
                 driverId: currentUser.uid,
-                driverName: currentUserData.name,
-                driverPhone: currentUserData.phone,
+                driverName: currentUserData.name || "Mototaxista",
+                driverPhone: currentUserData.phone || null,
                 driverPictureUrl: currentUserData.pictureUrl || null,
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         });
-        
+
         // Atualiza UI do motorista
         showCurrentRide(rideId);
         stopListeningForRides(); // Para de ouvir novas corridas
@@ -855,8 +893,15 @@ async function acceptRide(rideId) {
 // Recusa uma corrida (opcional, pode apenas não aceitar)
 async function rejectRide(rideId) {
     console.log(`Corrida ${rideId} recusada (ou ignorada).`);
-    // Poderia adicionar lógica para esconder a corrida recusada da lista,
-    // ou registrar a recusa para análise futura.
+    // Remove o item da UI para dar feedback visual
+    const rideItem = ridesListContainer.querySelector(`button[data-ride-id="${rideId}"]`)?.closest('.ride-item');
+    if (rideItem) {
+        rideItem.remove();
+    }
+    if (ridesListContainer.children.length === 0) {
+         ridesListContainer.innerHTML =
+            '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
+    }
 }
 
 // Exibe a corrida atual para o mototaxista
@@ -936,7 +981,7 @@ completeRideButton.addEventListener("click", async () => {
             startListeningForRides();
             startLocationUpdates(); // Volta a enviar localização
         }
-        
+
         // Abrir modal de avaliação
         const rideDoc = await db.collection("rides").doc(rideId).get();
         if (rideDoc.exists && !rideDoc.data().driverRating) {
@@ -953,7 +998,7 @@ completeRideButton.addEventListener("click", async () => {
 let locationUpdateInterval = null;
 function startLocationUpdates() {
     if (locationUpdateInterval) clearInterval(locationUpdateInterval);
-    
+
     const updateLocation = async () => {
         if (currentUserData?.status !== "available") {
             stopLocationUpdates();
@@ -1005,7 +1050,7 @@ async function loadDriverRating() {
 // --- Histórico ---
 async function loadRideHistory() {
     if (!currentUser) return;
-    rideHistoryContainer.innerHTML = 
+    rideHistoryContainer.innerHTML =
         '<p class="loading-message">Carregando histórico...</p>';
     try {
         const ridesRef = db.collection("rides");
@@ -1024,7 +1069,7 @@ async function loadRideHistory() {
             .get();
 
         if (snapshot.empty) {
-            rideHistoryContainer.innerHTML = 
+            rideHistoryContainer.innerHTML =
                 '<p class="empty-message">Nenhuma corrida no histórico.</p>';
             return;
         }
@@ -1034,11 +1079,11 @@ async function loadRideHistory() {
             const ride = doc.data();
             const rideElement = document.createElement("div");
             rideElement.classList.add("history-item");
-            
+
             const date = ride.createdAt ? ride.createdAt.toDate().toLocaleDateString("pt-BR") : "N/A";
             const statusClass = ride.status === "completed" ? "status-completed" : "status-cancelled";
             const statusText = ride.status === "completed" ? "Concluída" : "Cancelada";
-            
+
             let otherUserName = "";
             let ratingGiven = null;
             if (currentUserData.accountType === "user") {
@@ -1056,21 +1101,21 @@ async function loadRideHistory() {
                 </div>
                 <div class="history-details">
                     <p><strong>${currentUserData.accountType === "user" ? "Mototaxista" : "Passageiro"}:</strong> ${otherUserName}</p>
-                    <p><strong>Partida:</strong> ${ride.pickupLocation}</p>
-                    <p><strong>Destino:</strong> ${ride.destination}</p>
+                    <p><strong>Partida:</strong> ${ride.pickupLocation || 'N/A'}</p>
+                    <p><strong>Destino:</strong> ${ride.destination || 'N/A'}</p>
                     ${ride.status === 'cancelled' && ride.cancelReason ? `<p><strong>Motivo Cancel.:</strong> ${ride.cancelReason}</p>` : ''}
                 </div>
                 ${ride.status === 'completed' ? `
                 <div class="history-rating">
-                    ${ratingGiven ? 
-                        `<span>Sua Avaliação: <span class="rating-stars">${ratingService.formatRatingStars(ratingGiven)}</span></span>` : 
+                    ${ratingGiven ?
+                        `<span>Sua Avaliação: <span class="rating-stars">${ratingService.formatRatingStars(ratingGiven)}</span></span>` :
                         `<button class="secondary-button rate-ride-button" data-ride-id="${doc.id}" data-user-to-rate="${currentUserData.accountType === 'user' ? ride.driverId : ride.passengerId}" data-user-type-to-rate="${currentUserData.accountType === 'user' ? 'driver' : 'passenger'}">Avaliar</button>`
                     }
                 </div>` : ''}
             `;
             rideHistoryContainer.appendChild(rideElement);
         });
-        
+
         // Adiciona listeners aos botões de avaliar
         document.querySelectorAll(".rate-ride-button").forEach(button => {
             button.addEventListener("click", () => {
@@ -1080,7 +1125,7 @@ async function loadRideHistory() {
 
     } catch (error) {
         console.error("Erro ao carregar histórico de corridas:", error);
-        rideHistoryContainer.innerHTML = 
+        rideHistoryContainer.innerHTML =
             '<p class="error-message">Erro ao carregar histórico.</p>';
     }
 }
@@ -1088,19 +1133,19 @@ async function loadRideHistory() {
 // Carrega histórico de avaliações recebidas
 async function loadUserRatingsHistory() {
     if (!currentUser) return;
-    userRatingsHistoryContainer.innerHTML = 
+    userRatingsHistoryContainer.innerHTML =
         '<p class="loading-message">Carregando avaliações...</p>';
     try {
         const ratings = await ratingService.getUserRatings(currentUser.uid);
-        
+
         if (ratings.length === 0) {
-            userRatingsHistoryContainer.innerHTML = 
+            userRatingsHistoryContainer.innerHTML =
                 '<p class="empty-message">Nenhuma avaliação recebida.</p>';
             return;
         }
-        
+
         userRatingsHistoryContainer.innerHTML = ""; // Limpa
-        
+
         // Carrega nomes dos avaliadores
         const userIds = ratings.map(r => r.fromUserId);
         const uniqueUserIds = [...new Set(userIds)];
@@ -1133,7 +1178,7 @@ async function loadUserRatingsHistory() {
 
     } catch (error) {
         console.error("Erro ao carregar histórico de avaliações:", error);
-        userRatingsHistoryContainer.innerHTML = 
+        userRatingsHistoryContainer.innerHTML =
             '<p class="error-message">Erro ao carregar avaliações.</p>';
     }
 }
@@ -1243,7 +1288,7 @@ submitSuggestionButton.addEventListener("click", async () => {
 // Carrega sugestões enviadas pelo usuário
 async function loadUserSuggestions() {
     if (!currentUser) return;
-    suggestionsListContainer.innerHTML = 
+    suggestionsListContainer.innerHTML =
         '<p class="loading-message">Carregando sugestões...</p>';
     try {
         const suggestionsRef = db.collection("suggestions");
@@ -1255,7 +1300,7 @@ async function loadUserSuggestions() {
         const snapshot = await query.get();
 
         if (snapshot.empty) {
-            suggestionsListContainer.innerHTML = 
+            suggestionsListContainer.innerHTML =
                 '<p class="empty-message">Nenhuma sugestão enviada ainda.</p>';
             return;
         }
@@ -1265,19 +1310,19 @@ async function loadUserSuggestions() {
             const suggestion = doc.data();
             const suggestionElement = document.createElement("div");
             suggestionElement.classList.add("suggestion-item");
-            
+
             const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleDateString("pt-BR") : "N/A";
             const statusClass = `status-${suggestion.status}`;
             const statusText = suggestion.status.charAt(0).toUpperCase() + suggestion.status.slice(1);
 
             suggestionElement.innerHTML = `
                 <div class="suggestion-header">
-                    <strong>${suggestion.title}</strong>
+                    <strong>${suggestion.title || 'Sem título'}</strong>
                     <span class="suggestion-date">${date}</span>
                 </div>
-                <p class="suggestion-text">${suggestion.text}</p>
+                <p class="suggestion-text">${suggestion.text || 'Sem texto'}</p>
                 <div class="suggestion-footer">
-                    <span class="suggestion-type">${suggestion.type}</span>
+                    <span class="suggestion-type">${suggestion.type || 'N/A'}</span>
                     <span class="suggestion-status ${statusClass}">${statusText}</span>
                 </div>
             `;
@@ -1286,13 +1331,15 @@ async function loadUserSuggestions() {
 
     } catch (error) {
         console.error("Erro ao carregar sugestões:", error);
-        suggestionsListContainer.innerHTML = 
+        suggestionsListContainer.innerHTML =
             '<p class="error-message">Erro ao carregar suas sugestões.</p>';
     }
 }
 
 // --- Tabela de Preços ---
 async function loadPriceTable() {
+    priceTableImage.parentElement.classList.add('hidden'); // Esconde por padrão
+    priceTableImage.src = ''; // Limpa imagem anterior
     try {
         const imageUrl = await adminService.getPriceTableUrl();
         if (imageUrl) {
@@ -1301,33 +1348,36 @@ async function loadPriceTable() {
             priceTableImage.parentElement.classList.remove('hidden');
         } else {
             priceTableImage.alt = "Tabela de preços não disponível";
-            priceTableImage.parentElement.classList.add('hidden'); // Esconde se não houver imagem
+            // Mantém escondido
         }
     } catch (error) {
         console.error("Erro ao carregar tabela de preços:", error);
         priceTableImage.alt = "Erro ao carregar tabela de preços";
-        priceTableImage.parentElement.classList.add('hidden');
+        // Mantém escondido
     }
 }
 
 // --- Avaliação (Modal) ---
 function showRatingModal(rideId, userToRateId, userTypeToRate) {
+    // Fecha modal anterior se existir
+    closeRatingModal();
+    
     // Cria o modal dinamicamente
     const modal = document.createElement('div');
     modal.classList.add('modal');
     modal.id = 'rating-modal';
-    
+
     const modalContent = document.createElement('div');
     modalContent.classList.add('modal-content');
-    
+
     const userTypeText = userTypeToRate === 'driver' ? 'mototaxista' : 'passageiro';
-    
+
     modalContent.innerHTML = `
         <span class="close-modal" onclick="closeRatingModal()">&times;</span>
         <h2>Avaliar ${userTypeText}</h2>
         <p>Como foi sua experiência nesta corrida?</p>
         <div class="rating-stars-input">
-            ${[1, 2, 3, 4, 5].map(star => 
+            ${[1, 2, 3, 4, 5].map(star =>
                 `<span class="star" data-value="${star}">☆</span>`
             ).join('')}
         </div>
@@ -1338,10 +1388,10 @@ function showRatingModal(rideId, userToRateId, userTypeToRate) {
         </div>
         <button id="submit-rating-button" class="primary-button">Enviar Avaliação</button>
     `;
-    
+
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
-    
+
     // Adiciona listeners para as estrelas
     const stars = modal.querySelectorAll('.star');
     stars.forEach(star => {
@@ -1353,17 +1403,17 @@ function showRatingModal(rideId, userToRateId, userTypeToRate) {
             });
         });
     });
-    
+
     // Adiciona listener para o botão de submit
     document.getElementById('submit-rating-button').addEventListener('click', async () => {
         const rating = parseInt(document.getElementById('rating-value').value);
         const comment = document.getElementById('rating-comment').value;
-        
+
         if (rating === 0) {
             showError("Por favor, selecione uma avaliação de 1 a 5 estrelas.");
             return;
         }
-        
+
         try {
             await ratingService.addRating({
                 rideId: rideId,
@@ -1399,7 +1449,7 @@ function showWhatsAppContact(phoneNumber, container) {
     const whatsappNumber = phoneNumber.replace(/\D/g, '');
     // Adiciona o código do país (55 para Brasil) se não estiver presente
     const formattedNumber = whatsappNumber.startsWith('55') ? whatsappNumber : `55${whatsappNumber}`;
-    
+
     container.innerHTML = `
         <a href="https://wa.me/${formattedNumber}" target="_blank" class="whatsapp-button">
             <img src="icons/whatsapp.png" alt="WhatsApp">
@@ -1453,6 +1503,8 @@ function setupPassengerListeners() {
                 auth.signOut();
             }
         }
+    }, error => {
+        console.error("Erro no listener de usuário (passageiro):", error);
     });
     checkActiveRide();
 }
@@ -1483,6 +1535,8 @@ function setupDriverListeners() {
                 auth.signOut();
             }
         }
+    }, error => {
+        console.error("Erro no listener de usuário (motorista):", error);
     });
     checkDriverActiveRide();
 }
@@ -1499,8 +1553,7 @@ async function loadAppSettings() {
     }
 }
 
-// --- Inicialização e Lógica Admin (simplificada) ---
-// (A lógica completa do admin seria mais extensa)
+// --- Lógica Admin ---
 
 // Navegação Admin
 const adminNavButtons = document.querySelectorAll(".admin-section .main-nav .nav-button");
@@ -1509,7 +1562,7 @@ adminNavButtons.forEach(button => {
         const targetSectionId = button.id.replace("nav-", "");
         setActiveAdminNav(button.id);
         showAdminContentSection(targetSectionId);
-        
+
         // Carrega dados da seção admin
         if (targetSectionId === "admin-dashboard") {
             loadAdminDashboard();
@@ -1540,50 +1593,48 @@ function showAdminContentSection(sectionId) {
 
 // Carrega dados do Dashboard Admin
 async function loadAdminDashboard() {
+    adminDashboardSection.innerHTML = '<p class="loading-message">Carregando dashboard...</p>';
     try {
         const stats = await adminService.getDashboardStats();
-        totalUsersDisplay.textContent = stats.totalUsers;
-        activeDriversDisplay.textContent = stats.activeDrivers;
-        ridesTodayDisplay.textContent = stats.ridesToday;
-        totalRidesDisplay.textContent = stats.totalRides;
-        
-        // Carregar gráficos (requer biblioteca de gráficos, ex: Chart.js)
-        // loadRidesChart(); 
-        // loadRatingsChart();
-        
-        loadRecentActivities();
-        
-    } catch (error) {
-        console.error("Erro ao carregar dashboard:", error);
-        showError("Erro ao carregar dados do dashboard.");
-    }
-}
-
-// Carrega atividades recentes
-async function loadRecentActivities() {
-    try {
         const activities = await adminService.getRecentActivities();
-        activityListContainer.innerHTML = "";
+        
+        // Limpa a seção antes de adicionar conteúdo
+        adminDashboardSection.innerHTML = `
+            <h2>Dashboard</h2>
+            <div class="stats-container">
+                <div class="stat-card"><h3>Usuários Totais</h3><p id="total-users">${stats.totalUsers}</p></div>
+                <div class="stat-card"><h3>Mototaxistas Ativos</h3><p id="active-drivers">${stats.activeDrivers}</p></div>
+                <div class="stat-card"><h3>Corridas Hoje</h3><p id="rides-today">${stats.ridesToday}</p></div>
+                <div class="stat-card"><h3>Corridas Totais</h3><p id="total-rides">${stats.totalRides}</p></div>
+            </div>
+            <!-- Gráficos podem ser adicionados aqui -->
+            <h3>Atividades Recentes</h3>
+            <div id="activity-list" class="activity-list-container"></div>
+        `;
+        
+        const activityListContainer = adminDashboardSection.querySelector('#activity-list');
         if (activities.length === 0) {
             activityListContainer.innerHTML = '<p class="empty-message">Nenhuma atividade recente.</p>';
-            return;
+        } else {
+            activities.forEach(activity => {
+                const item = document.createElement('div');
+                item.classList.add('activity-item');
+                const date = activity.timestamp ? activity.timestamp.toDate().toLocaleString('pt-BR') : 'N/A';
+                let icon = '';
+                if (activity.type === 'ride') icon = '🏍️';
+                else if (activity.type === 'suggestion') icon = '💡';
+
+                item.innerHTML = `
+                    <span>${icon} ${activity.details} (${activity.status})</span>
+                    <span class="activity-time">${date}</span>
+                `;
+                activityListContainer.appendChild(item);
+            });
         }
-        activities.forEach(activity => {
-            const item = document.createElement('div');
-            item.classList.add('activity-item');
-            const date = activity.timestamp ? activity.timestamp.toDate().toLocaleString('pt-BR') : 'N/A';
-            let icon = '';
-            if (activity.type === 'ride') icon = '🏍️';
-            else if (activity.type === 'suggestion') icon = '💡';
-            
-            item.innerHTML = `
-                <span>${icon} ${activity.details} (${activity.status})</span>
-                <span class="activity-time">${date}</span>
-            `;
-            activityListContainer.appendChild(item);
-        });
+
     } catch (error) {
-        console.error("Erro ao carregar atividades recentes:", error);
+        console.error("Erro ao carregar dashboard:", error);
+        adminDashboardSection.innerHTML = '<p class="error-message">Erro ao carregar dados do dashboard.</p>';
     }
 }
 
@@ -1606,7 +1657,7 @@ async function loadAdminUsers() {
                 <div class="user-item-info">
                     <img src="${user.pictureUrl || 'icons/default-profile.png'}" alt="Foto">
                     <div class="user-item-details">
-                        <h4>${user.name} (${user.accountType})</h4>
+                        <h4>${user.name} (${user.accountType}) ${user.isAdmin ? '(Admin)' : ''}</h4>
                         <p>${user.email} | ${user.phone}</p>
                         <p>Avaliação: ${user.averageRating?.toFixed(1) || 'N/A'} (${user.ratingCount || 0})</p>
                     </div>
@@ -1619,7 +1670,7 @@ async function loadAdminUsers() {
             `;
             usersListContainer.appendChild(item);
         });
-        
+
         // Add listeners for block buttons
         document.querySelectorAll('.block-user-button').forEach(button => {
             button.addEventListener('click', async () => {
@@ -1634,7 +1685,7 @@ async function loadAdminUsers() {
                 }
             });
         });
-        
+
     } catch (error) {
         console.error("Erro ao carregar usuários:", error);
         usersListContainer.innerHTML = '<p class="error-message">Erro ao carregar usuários.</p>';
@@ -1658,7 +1709,7 @@ async function loadAdminRides() {
             item.classList.add('admin-ride-item');
             const date = ride.createdAt ? ride.createdAt.toDate().toLocaleString('pt-BR') : 'N/A';
             const statusClass = `status-${ride.status}`;
-            
+
             item.innerHTML = `
                 <div class="admin-ride-header">
                     <span class="admin-ride-id">ID: ${ride.id.substring(0, 8)}...</span>
@@ -1706,7 +1757,7 @@ async function loadAdminSuggestions() {
             item.classList.add('admin-suggestion-item');
             const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleString('pt-BR') : 'N/A';
             const statusClass = `status-${suggestion.status}`;
-            
+
             item.innerHTML = `
                 <div class="admin-suggestion-header">
                     <span class="admin-suggestion-title">${suggestion.title}</span>
@@ -1730,7 +1781,7 @@ async function loadAdminSuggestions() {
             `;
             adminSuggestionsListContainer.appendChild(item);
         });
-        
+
         // Add listeners for status selects
         document.querySelectorAll('.suggestion-status-select').forEach(select => {
             select.addEventListener('change', async (event) => {
@@ -1745,7 +1796,7 @@ async function loadAdminSuggestions() {
                 }
             });
         });
-        
+
     } catch (error) {
         console.error("Erro ao carregar sugestões:", error);
         adminSuggestionsListContainer.innerHTML = '<p class="error-message">Erro ao carregar sugestões.</p>';
@@ -1787,6 +1838,15 @@ uploadPriceTableButton.addEventListener('click', async () => {
         showError("Selecione um arquivo de imagem para a tabela de preços.");
         return;
     }
+    // Valida tipo de arquivo (opcional mas recomendado)
+    if (!file.type.startsWith('image/')) {
+        showError("Por favor, selecione um arquivo de imagem (PNG, JPG, etc.).");
+        return;
+    }
+    
+    uploadPriceTableButton.disabled = true;
+    uploadPriceTableButton.textContent = 'Enviando...';
+    
     try {
         const imageUrl = await adminService.updatePriceTable(file);
         showSuccess("Tabela de preços atualizada com sucesso!");
@@ -1796,6 +1856,10 @@ uploadPriceTableButton.addEventListener('click', async () => {
         }
     } catch (error) {
         showError("Erro ao atualizar tabela de preços.");
+    } finally {
+        uploadPriceTableButton.disabled = false;
+        uploadPriceTableButton.textContent = 'Salvar Tabela de Preços';
+        priceTableUploadInput.value = ''; // Limpa o input
     }
 });
 
@@ -1806,6 +1870,41 @@ rideSearchInput.addEventListener('input', loadAdminRides);
 rideFilterSelect.addEventListener('change', loadAdminRides);
 suggestionSearchInput.addEventListener('input', loadAdminSuggestions);
 suggestionFilterSelect.addEventListener('change', loadAdminSuggestions);
+
+// --- PWA Install Banner ---
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // Update UI notify the user they can install the PWA
+    pwaBanner.classList.remove('hidden');
+});
+
+installPwaButton.addEventListener('click', async () => {
+    // Hide the app provided install promotion
+    pwaBanner.classList.add('hidden');
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    // We've used the prompt, and can't use it again, throw it away
+    deferredPrompt = null;
+});
+
+closePwaBannerButton.addEventListener('click', () => {
+    pwaBanner.classList.add('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+    // Hide the install promotion
+    pwaBanner.classList.add('hidden');
+    // Clear the deferredPrompt so it can be garbage collected
+    deferredPrompt = null;
+    // Optionally, send analytics event to indicate successful install
+    console.log('PWA was installed');
+});
 
 // --- Inicialização ---
 // A lógica inicial é controlada pelo onAuthStateChanged

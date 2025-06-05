@@ -1,8 +1,8 @@
 {
   "name": "Oops Transportes Caramujo",
   "short_name": "Oops Transportes",
-  "description": "Aplicativo de mototáxi para o bairro Caramujo",
-  "start_url": "/index.html",
+  "description": "Aplicativo de mototáxi para o bairro",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#0f3460",
@@ -45,8 +45,7 @@
     {
       "src": "icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
