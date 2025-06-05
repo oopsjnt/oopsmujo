@@ -1,508 +1,502 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1a1a2e">
-    <meta name="description" content="Oops Transportes Caramujo - Transporte rápido e seguro para o seu bairro">
+    <meta name="description" content="Aplicativo de mototáxi para o bairro Caramujo">
     <title>Oops Transportes Caramujo</title>
-    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192x192.png">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <!-- Firebase App (a base) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <!-- Adicione os produtos Firebase que você quer usar -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+    <style>
+        /* Estilos iniciais para evitar FOUC (Flash of Unstyled Content) */
+        body {
+            background-color: #1a1a2e;
+            color: #e1e1e1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-theme">
     <div class="container">
+        <!-- Cabeçalho -->
         <header>
             <h1>Oops Transportes Caramujo</h1>
-            <p>Transporte rápido e seguro para o seu bairro</p>
-            <button id="toggle-theme-button" class="theme-toggle">
-                <span class="light-icon">☀️</span>
-                <span class="dark-icon">🌙</span>
-            </button>
+            <p>Seu mototáxi de confiança no bairro</p>
         </header>
 
-        <!-- Seção de Login/Cadastro (Visível inicialmente) -->
+        <!-- Seção de Autenticação -->
         <section id="auth-section" class="auth-section">
             <div class="tabs">
                 <button id="login-tab" class="tab active">Login</button>
                 <button id="register-tab" class="tab">Cadastro</button>
             </div>
-            
+
             <!-- Formulário de Login -->
             <div id="login-form" class="form-container">
-                <h2>Entrar na sua conta</h2>
                 <div class="form-group">
-                    <label for="login-email">Email:</label>
+                    <label for="login-email">Email</label>
                     <input type="email" id="login-email" placeholder="Seu email">
                 </div>
                 <div class="form-group">
-                    <label for="login-password">Senha:</label>
+                    <label for="login-password">Senha</label>
                     <input type="password" id="login-password" placeholder="Sua senha">
                 </div>
-                <div class="form-group">
-                    <button id="login-button" class="primary-button">Entrar</button>
-                </div>
+                <button id="login-button" class="primary-button">Entrar</button>
             </div>
-            
+
             <!-- Formulário de Cadastro -->
             <div id="register-form" class="form-container hidden">
-                <h2>Criar nova conta</h2>
                 <div class="form-group">
-                    <label for="register-name">Nome completo:</label>
+                    <label for="register-name">Nome completo</label>
                     <input type="text" id="register-name" placeholder="Seu nome completo">
                 </div>
                 <div class="form-group">
-                    <label for="register-phone">Telefone:</label>
-                    <input type="tel" id="register-phone" placeholder="Seu telefone com DDD">
+                    <label for="register-phone">Telefone (com WhatsApp)</label>
+                    <input type="tel" id="register-phone" placeholder="(99) 99999-9999">
                 </div>
                 <div class="form-group">
-                    <label for="register-email">Email:</label>
+                    <label for="register-email">Email</label>
                     <input type="email" id="register-email" placeholder="Seu email">
                 </div>
                 <div class="form-group">
-                    <label for="register-password">Senha:</label>
+                    <label for="register-password">Senha</label>
                     <input type="password" id="register-password" placeholder="Crie uma senha">
                 </div>
                 <div class="form-group">
-                    <label>Tipo de conta:</label>
+                    <label>Tipo de conta</label>
                     <div class="radio-group">
-                        <input type="radio" id="user-type" name="account-type" value="user" checked>
-                        <label for="user-type">Passageiro</label>
-                        
-                        <input type="radio" id="driver-type" name="account-type" value="driver">
-                        <label for="driver-type">Mototaxista</label>
+                        <label>
+                            <input type="radio" name="account-type" value="user" checked> Passageiro
+                        </label>
+                        <label>
+                            <input type="radio" name="account-type" value="driver"> Mototaxista
+                        </label>
                     </div>
                 </div>
                 <div class="form-group">
-                    <button id="register-button" class="primary-button">Cadastrar</button>
+                    <div class="terms-container">
+                        <input type="checkbox" id="terms-checkbox">
+                        <label for="terms-checkbox">Li e aceito os <a href="#" id="show-terms">termos de uso</a></label>
+                    </div>
                 </div>
+                <button id="register-button" class="primary-button" disabled>Cadastrar</button>
             </div>
         </section>
 
-        <!-- Seção Principal do App (Escondida até login) -->
+        <!-- Modal de Termos de Uso -->
+        <div id="terms-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Termos de Uso - Oops Transportes Caramujo</h2>
+                <div class="terms-text">
+                    <p>Ao utilizar o aplicativo Oops Transportes Caramujo, você concorda com os seguintes termos:</p>
+                    
+                    <h3>1. Responsabilidade Limitada</h3>
+                    <p>A Oops Transportes Caramujo não se responsabiliza pelos profissionais e/ou usuários do sistema. Somos apenas uma plataforma que conecta clientes a profissionais de mototáxi.</p>
+                    
+                    <h3>2. Isenção de Responsabilidade</h3>
+                    <p>Não nos responsabilizamos por perdas, acidentes, danos materiais ou pessoais que possam ocorrer durante as corridas.</p>
+                    
+                    <h3>3. Documentação e Veículos</h3>
+                    <p>A Oops Transportes Caramujo não se responsabiliza pela documentação dos motoristas e veículos. É responsabilidade do profissional manter seus documentos em dia e seguir as leis de trânsito.</p>
+                    
+                    <h3>4. Natureza do Serviço</h3>
+                    <p>Somos uma plataforma tecnológica que facilita a conexão entre passageiros e mototaxistas. Não prestamos serviços de transporte diretamente.</p>
+                    
+                    <h3>5. Uso da Plataforma</h3>
+                    <p>Ao utilizar nossa plataforma, você concorda em fornecer informações verdadeiras e precisas, e a utilizar o serviço de forma adequada e legal.</p>
+                    
+                    <h3>6. Alterações nos Termos</h3>
+                    <p>Reservamo-nos o direito de modificar estes termos a qualquer momento, sendo responsabilidade do usuário verificar periodicamente as atualizações.</p>
+                </div>
+                <button id="accept-terms" class="primary-button">Aceito os Termos</button>
+            </div>
+        </div>
+
+        <!-- Seção Principal do App -->
         <section id="app-section" class="app-section hidden">
-            <!-- Conteúdo do App será carregado dinamicamente baseado no tipo de usuário -->
             <div class="user-info">
                 <div class="user-profile">
                     <img id="user-profile-picture" src="icons/default-profile.png" alt="Foto de perfil">
-                    <p>Olá, <span id="user-name">Usuário</span>!</p>
+                    <span id="user-name">Usuário</span>
                 </div>
-                <div id="user-rating" class="user-rating"></div>
                 <div class="user-actions">
                     <button id="profile-button" class="secondary-button">Perfil</button>
                     <button id="logout-button" class="secondary-button">Sair</button>
                 </div>
             </div>
-            
-            <!-- Navegação principal -->
-            <div class="main-nav">
+
+            <nav class="main-nav">
                 <button id="nav-main" class="nav-button active">Principal</button>
-                <button id="nav-profile" class="nav-button">Perfil</button>
                 <button id="nav-history" class="nav-button">Histórico</button>
+                <button id="nav-profile" class="nav-button">Perfil</button>
                 <button id="nav-suggestions" class="nav-button">Sugestões</button>
+                <button id="nav-prices" class="nav-button">Tabela de Preços</button>
+            </nav>
+
+            <!-- Interface Principal -->
+            <div id="main-section" class="content-section">
+                <!-- Interface do Passageiro -->
+                <div id="passenger-interface" class="hidden">
+                    <h2>Solicitar Corrida</h2>
+                    <div class="form-group">
+                        <label for="pickup-location">Local de partida</label>
+                        <input type="text" id="pickup-location" placeholder="Onde você está?">
+                        <button id="use-current-location" class="secondary-button">Usar minha localização atual</button>
+                        <p id="location-status" class="status-text hidden"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="destination">Destino</label>
+                        <input type="text" id="destination" placeholder="Para onde você vai?">
+                    </div>
+                    <button id="request-ride-button" class="primary-button">Solicitar Mototáxi</button>
+
+                    <div id="nearby-drivers" class="nearby-drivers"></div>
+
+                    <div id="ride-status" class="status-container hidden">
+                        <h3>Status da Corrida</h3>
+                        <p id="status-message">Procurando mototaxistas próximos...</p>
+                        <div class="ride-actions">
+                            <button id="cancel-ride-button" class="secondary-button">Cancelar Corrida</button>
+                        </div>
+                    </div>
+
+                    <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
+                    
+                    <div id="cancel-feedback-container" class="modal hidden">
+                        <div class="modal-content">
+                            <span class="close-modal-feedback">&times;</span>
+                            <h2>Por que você está cancelando?</h2>
+                            <div class="feedback-options">
+                                <label>
+                                    <input type="radio" name="cancel-reason" value="driver-delay"> Demora do profissional
+                                </label>
+                                <label>
+                                    <input type="radio" name="cancel-reason" value="wrong-location"> Cliente não está no local
+                                </label>
+                                <label>
+                                    <input type="radio" name="cancel-reason" value="driver-not-suitable"> Profissional não apto
+                                </label>
+                                <label>
+                                    <input type="radio" name="cancel-reason" value="other"> Outro motivo
+                                </label>
+                                <textarea id="other-reason" placeholder="Descreva o motivo..." class="hidden"></textarea>
+                            </div>
+                            <button id="submit-cancel-feedback" class="primary-button">Enviar e Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interface do Mototaxista -->
+                <div id="driver-interface" class="hidden">
+                    <div class="status-toggle">
+                        <label for="driver-status">Seu status:</label>
+                        <select id="driver-status">
+                            <option value="unavailable">Indisponível</option>
+                            <option value="available">Disponível</option>
+                        </select>
+                    </div>
+
+                    <div class="rides-container">
+                        <h3>Corridas Disponíveis</h3>
+                        <div id="rides-list" class="rides-list">
+                            <p class="empty-message">Nenhuma corrida disponível no momento.</p>
+                        </div>
+                    </div>
+
+                    <div id="current-ride" class="current-ride hidden">
+                        <h3>Corrida Atual</h3>
+                        <div class="ride-details">
+                            <p><strong>Passageiro:</strong> <span id="passenger-name">Nome do passageiro</span></p>
+                            <p><strong>Partida:</strong> <span id="ride-pickup">Local de partida</span></p>
+                            <p><strong>Destino:</strong> <span id="ride-destination">Destino</span></p>
+                        </div>
+                        <button id="complete-ride-button" class="primary-button">Finalizar Corrida</button>
+                    </div>
+
+                    <div id="whatsapp-contact-driver" class="whatsapp-container hidden"></div>
+                    
+                    <div id="driver-rating" class="ratings-section">
+                        <h3>Sua Avaliação</h3>
+                        <!-- Preenchido dinamicamente -->
+                    </div>
+                </div>
             </div>
-            
-            <!-- Seção de Perfil -->
-            <section id="profile-section" class="content-section hidden">
+
+            <!-- Histórico -->
+            <div id="history-section" class="content-section hidden">
+                <h2>Histórico de Corridas</h2>
+                <div id="ride-history" class="history-section">
+                    <!-- Preenchido dinamicamente -->
+                </div>
+                
+                <div class="ratings-section">
+                    <h3>Avaliações Recebidas</h3>
+                    <div id="user-ratings-history" class="ratings-history">
+                        <!-- Preenchido dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Perfil -->
+            <div id="profile-section" class="content-section hidden">
                 <h2>Seu Perfil</h2>
                 <div class="profile-picture-container">
                     <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de perfil">
-                    <label for="profile-picture" class="upload-button">Alterar foto</label>
                     <input type="file" id="profile-picture" accept="image/*" class="hidden">
+                    <label for="profile-picture" class="upload-button">Alterar foto</label>
                 </div>
-                <div class="form-group">
-                    <label for="profile-name">Nome:</label>
-                    <input type="text" id="profile-name" placeholder="Seu nome completo">
-                </div>
-                <div class="form-group">
-                    <label for="profile-phone">Telefone:</label>
-                    <input type="tel" id="profile-phone" placeholder="Seu telefone com DDD">
-                </div>
-                <div class="form-group">
-                    <button id="save-profile-button" class="primary-button">Salvar Perfil</button>
-                </div>
-            </section>
-            
-            <!-- Seção de Histórico -->
-            <section id="history-section" class="content-section hidden">
-                <h2>Histórico de Viagens</h2>
-                <div id="ride-history" class="history-section">
-                    <p class="loading-message">Carregando histórico...</p>
-                </div>
-                
-                <!-- Histórico de avaliações -->
-                <div class="ratings-section">
-                    <h3>Minhas Avaliações</h3>
-                    <div id="user-ratings-history" class="ratings-history">
-                        <p class="loading-message">Carregando avaliações...</p>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Seção de Sugestões -->
-            <section id="suggestions-section" class="content-section hidden">
+                <button id="save-profile-button" class="primary-button">Salvar Alterações</button>
+            </div>
+
+            <!-- Sugestões -->
+            <div id="suggestions-section" class="content-section hidden">
                 <h2>Sugestões e Melhorias</h2>
                 <div class="form-group">
-                    <label for="suggestion-title">Título:</label>
+                    <label for="suggestion-title">Título</label>
                     <input type="text" id="suggestion-title" placeholder="Título da sua sugestão">
                 </div>
                 <div class="form-group">
-                    <label for="suggestion-text">Descrição:</label>
-                    <textarea id="suggestion-text" rows="5" placeholder="Descreva sua sugestão ou melhoria para o aplicativo"></textarea>
+                    <label for="suggestion-text">Descrição</label>
+                    <textarea id="suggestion-text" rows="4" placeholder="Descreva sua sugestão ou melhoria"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="suggestion-type">Tipo:</label>
+                    <label for="suggestion-type">Tipo</label>
                     <select id="suggestion-type">
                         <option value="improvement">Melhoria</option>
-                        <option value="bug">Correção de Bug</option>
+                        <option value="bug">Problema/Bug</option>
                         <option value="feature">Nova Funcionalidade</option>
                         <option value="other">Outro</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <button id="submit-suggestion-button" class="primary-button">Enviar Sugestão</button>
-                </div>
+                <button id="submit-suggestion-button" class="primary-button">Enviar Sugestão</button>
                 
                 <div class="suggestions-list-container">
-                    <h3>Minhas Sugestões Enviadas</h3>
+                    <h3>Suas Sugestões Anteriores</h3>
                     <div id="suggestions-list" class="suggestions-list">
-                        <p class="loading-message">Carregando sugestões...</p>
+                        <!-- Preenchido dinamicamente -->
                     </div>
                 </div>
-            </section>
-            
-            <!-- Interface do Passageiro -->
-            <div id="passenger-interface" class="interface-container content-section hidden">
-                <h2>Solicitar Corrida</h2>
-                <div class="form-group">
-                    <label for="pickup-location">Onde você está?</label>
-                    <input type="text" id="pickup-location" placeholder="Ex: Rua das Flores, 123">
-                    <button id="use-current-location" class="secondary-button">Usar minha localização atual</button>
-                    <p id="location-status" class="status-text hidden"></p>
-                </div>
-                <div class="form-group">
-                    <label for="destination">Para onde deseja ir?</label>
-                    <input type="text" id="destination" placeholder="Ex: Shopping Center">
-                </div>
-                <div class="form-group">
-                    <button id="request-ride-button" class="primary-button">Solicitar Mototáxi</button>
-                </div>
-                
-                <!-- Mototaxistas próximos -->
-                <div id="nearby-drivers" class="nearby-drivers"></div>
-                
-                <!-- Status da corrida -->
-                <div id="ride-status" class="status-container hidden">
-                    <h3>Status da sua corrida</h3>
-                    <p id="status-message">Procurando mototaxistas próximos...</p>
-                    <div class="ride-actions">
-                        <button id="cancel-ride-button" class="secondary-button" data-ride-id="">Cancelar Corrida</button>
-                    </div>
-                </div>
-                
-                <!-- Contato WhatsApp -->
-                <div id="whatsapp-contact" class="whatsapp-container hidden"></div>
             </div>
             
-            <!-- Interface do Mototaxista -->
-            <div id="driver-interface" class="interface-container content-section hidden">
-                <h2>Painel do Mototaxista</h2>
-                <div class="status-toggle">
-                    <label for="driver-status">Status:</label>
-                    <select id="driver-status">
-                        <option value="available">Disponível</option>
-                        <option value="unavailable">Indisponível</option>
-                    </select>
+            <!-- Tabela de Preços -->
+            <div id="prices-section" class="content-section hidden">
+                <h2>Tabela de Preços</h2>
+                <div class="price-table-container">
+                    <img id="price-table-image" src="icons/price-table.png" alt="Tabela de preços" class="price-table-image">
                 </div>
-                
-                <div id="available-rides" class="rides-container">
-                    <h3>Corridas Disponíveis</h3>
-                    <div id="rides-list" class="rides-list">
-                        <!-- As corridas serão adicionadas dinamicamente aqui -->
-                        <p class="empty-message">Nenhuma corrida disponível no momento.</p>
-                    </div>
-                </div>
-                
-                <div id="current-ride" class="current-ride hidden">
-                    <h3>Corrida Atual</h3>
-                    <div class="ride-details">
-                        <p><strong>Passageiro:</strong> <span id="passenger-name">-</span></p>
-                        <p><strong>Local de partida:</strong> <span id="ride-pickup">-</span></p>
-                        <p><strong>Destino:</strong> <span id="ride-destination">-</span></p>
-                    </div>
-                    <div class="ride-actions">
-                        <button id="complete-ride-button" class="primary-button">Finalizar Corrida</button>
-                    </div>
-                </div>
-                
-                <!-- Contato WhatsApp -->
-                <div id="whatsapp-contact-driver" class="whatsapp-container hidden"></div>
+                <p class="price-info">Estes são os preços praticados pelos profissionais dentro do bairro Caramujo.</p>
             </div>
         </section>
         
-        <!-- Banner de instalação do PWA -->
-        <div id="pwa-install-banner" class="pwa-banner hidden">
-            <p>Instale nosso app para uma experiência melhor!</p>
-            <button id="pwa-install-button" class="primary-button">Instalar</button>
-            <button id="pwa-close-button" class="secondary-button">Agora não</button>
+        <!-- Seção de Administração -->
+        <section id="admin-section" class="app-section hidden">
+            <div class="user-info">
+                <div class="user-profile">
+                    <img src="icons/default-profile.png" alt="Admin">
+                    <span>Administrador</span>
+                </div>
+                <div class="user-actions">
+                    <button id="admin-logout-button" class="secondary-button">Sair</button>
+                </div>
+            </div>
+            
+            <nav class="main-nav">
+                <button id="admin-nav-dashboard" class="nav-button active">Dashboard</button>
+                <button id="admin-nav-users" class="nav-button">Usuários</button>
+                <button id="admin-nav-rides" class="nav-button">Corridas</button>
+                <button id="admin-nav-suggestions" class="nav-button">Sugestões</button>
+                <button id="admin-nav-settings" class="nav-button">Configurações</button>
+            </nav>
+            
+            <!-- Dashboard -->
+            <div id="admin-dashboard" class="content-section">
+                <h2>Dashboard</h2>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3>Total de Usuários</h3>
+                        <div id="total-users" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Mototaxistas Ativos</h3>
+                        <div id="active-drivers" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Corridas Hoje</h3>
+                        <div id="rides-today" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Corridas Total</h3>
+                        <div id="total-rides" class="stat-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-charts">
+                    <div class="chart-container">
+                        <h3>Corridas por Dia</h3>
+                        <div id="rides-chart" class="chart"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Avaliações Médias</h3>
+                        <div id="ratings-chart" class="chart"></div>
+                    </div>
+                </div>
+                
+                <div class="recent-activity">
+                    <h3>Atividade Recente</h3>
+                    <div id="activity-list" class="activity-list">
+                        <!-- Preenchido dinamicamente -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Usuários -->
+            <div id="admin-users" class="content-section hidden">
+                <h2>Gerenciar Usuários</h2>
+                <div class="search-bar">
+                    <input type="text" id="user-search" placeholder="Buscar usuário...">
+                    <select id="user-filter">
+                        <option value="all">Todos</option>
+                        <option value="user">Passageiros</option>
+                        <option value="driver">Mototaxistas</option>
+                        <option value="blocked">Bloqueados</option>
+                    </select>
+                </div>
+                
+                <div id="users-list" class="users-list">
+                    <!-- Preenchido dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Corridas -->
+            <div id="admin-rides" class="content-section hidden">
+                <h2>Gerenciar Corridas</h2>
+                <div class="search-bar">
+                    <input type="text" id="ride-search" placeholder="Buscar corrida...">
+                    <select id="ride-filter">
+                        <option value="all">Todas</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="accepted">Em andamento</option>
+                        <option value="completed">Concluídas</option>
+                        <option value="cancelled">Canceladas</option>
+                    </select>
+                </div>
+                
+                <div id="admin-rides-list" class="admin-rides-list">
+                    <!-- Preenchido dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Sugestões -->
+            <div id="admin-suggestions" class="content-section hidden">
+                <h2>Gerenciar Sugestões</h2>
+                <div class="search-bar">
+                    <input type="text" id="suggestion-search" placeholder="Buscar sugestão...">
+                    <select id="suggestion-filter">
+                        <option value="all">Todas</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="approved">Aprovadas</option>
+                        <option value="rejected">Rejeitadas</option>
+                        <option value="implemented">Implementadas</option>
+                    </select>
+                </div>
+                
+                <div id="admin-suggestions-list" class="admin-suggestions-list">
+                    <!-- Preenchido dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Configurações -->
+            <div id="admin-settings" class="content-section hidden">
+                <h2>Configurações</h2>
+                <div class="settings-section">
+                    <h3>Tabela de Preços</h3>
+                    <div class="form-group">
+                        <label for="price-table-upload">Atualizar imagem da tabela de preços</label>
+                        <input type="file" id="price-table-upload" accept="image/*">
+                    </div>
+                    <button id="upload-price-table" class="primary-button">Atualizar Tabela</button>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>Configurações do Sistema</h3>
+                    <div class="form-group">
+                        <label for="timeout-setting">Tempo limite para aceitação de corrida (minutos)</label>
+                        <input type="number" id="timeout-setting" min="1" max="30" value="5">
+                    </div>
+                    <button id="save-settings" class="primary-button">Salvar Configurações</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Banner de instalação PWA -->
+        <div id="pwa-banner" class="pwa-banner hidden">
+            <p>Instale o app para uma melhor experiência!</p>
+            <button id="install-pwa" class="primary-button">Instalar</button>
+            <button id="close-pwa-banner" class="secondary-button">Agora não</button>
         </div>
     </div>
 
+    <!-- Scripts do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    
+    <!-- Scripts da aplicação -->
     <script src="geo-service.js"></script>
     <script src="rating-service.js"></script>
+    <script src="admin-service.js"></script>
     <script src="script.js"></script>
+    
+    <!-- Registro do Service Worker -->
     <script>
-        // Registrar o Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
                         console.log('Service Worker registrado com sucesso:', registration);
                     })
                     .catch(error => {
-                        console.error('Erro ao registrar Service Worker:', error);
+                        console.log('Falha ao registrar Service Worker:', error);
                     });
             });
         }
         
-        // Variáveis para o banner de instalação do PWA
+        // Variáveis para instalação do PWA
         let deferredPrompt;
-        const pwaInstallBanner = document.getElementById('pwa-install-banner');
-        const pwaInstallButton = document.getElementById('pwa-install-button');
-        const pwaCloseButton = document.getElementById('pwa-close-button');
+        const pwaBanner = document.getElementById('pwa-banner');
+        const installButton = document.getElementById('install-pwa');
+        const closeBannerButton = document.getElementById('close-pwa-banner');
         
-        // Evento disparado antes do prompt de instalação
+        // Evento para capturar o prompt de instalação
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevenir o prompt automático
             e.preventDefault();
-            // Armazenar o evento para uso posterior
             deferredPrompt = e;
-            // Mostrar o banner de instalação
-            pwaInstallBanner.classList.remove('hidden');
+            pwaBanner.classList.remove('hidden');
         });
         
-        // Botão de instalação
-        pwaInstallButton.addEventListener('click', () => {
-            // Esconder o banner
-            pwaInstallBanner.classList.add('hidden');
-            // Mostrar o prompt de instalação
+        // Evento para instalar o PWA
+        installButton.addEventListener('click', () => {
+            pwaBanner.classList.add('hidden');
             deferredPrompt.prompt();
-            // Esperar pela escolha do usuário
             deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
                     console.log('Usuário aceitou a instalação do PWA');
                 } else {
                     console.log('Usuário recusou a instalação do PWA');
                 }
-                // Limpar a referência
                 deferredPrompt = null;
             });
         });
         
-        // Botão para fechar o banner
-        pwaCloseButton.addEventListener('click', () => {
-            pwaInstallBanner.classList.add('hidden');
+        // Evento para fechar o banner
+        closeBannerButton.addEventListener('click', () => {
+            pwaBanner.classList.add('hidden');
         });
-        
-        // Alternar tema
-        const toggleThemeButton = document.getElementById('toggle-theme-button');
-        if (toggleThemeButton) {
-            toggleThemeButton.addEventListener('click', () => {
-                document.body.classList.toggle('dark-theme');
-                localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
-            });
-        }
-        
-        // Aplicar tema salvo
-        if (localStorage.getItem('theme') === 'light') {
-            document.body.classList.remove('dark-theme');
-        } else {
-            document.body.classList.add('dark-theme');
-        }
-        
-        // Navegação principal
-        const navMain = document.getElementById('nav-main');
-        const navProfile = document.getElementById('nav-profile');
-        const navHistory = document.getElementById('nav-history');
-        const navSuggestions = document.getElementById('nav-suggestions');
-        
-        const passengerInterface = document.getElementById('passenger-interface');
-        const driverInterface = document.getElementById('driver-interface');
-        const profileSection = document.getElementById('profile-section');
-        const historySection = document.getElementById('history-section');
-        const suggestionsSection = document.getElementById('suggestions-section');
-        
-        function hideAllSections() {
-            const sections = document.querySelectorAll('.content-section');
-            sections.forEach(section => section.classList.add('hidden'));
-            
-            const navButtons = document.querySelectorAll('.nav-button');
-            navButtons.forEach(button => button.classList.remove('active'));
-        }
-        
-        navMain.addEventListener('click', () => {
-            hideAllSections();
-            navMain.classList.add('active');
-            
-            // Verificar qual interface mostrar
-            if (currentUser) {
-                db.collection("users").doc(currentUser.uid).get()
-                    .then((doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            if (userData.accountType === "user") {
-                                passengerInterface.classList.remove('hidden');
-                            } else {
-                                driverInterface.classList.remove('hidden');
-                            }
-                        }
-                    });
-            }
-        });
-        
-        navProfile.addEventListener('click', () => {
-            hideAllSections();
-            navProfile.classList.add('active');
-            profileSection.classList.remove('hidden');
-        });
-        
-        navHistory.addEventListener('click', () => {
-            hideAllSections();
-            navHistory.classList.add('active');
-            historySection.classList.remove('hidden');
-            
-            // Carregar histórico
-            if (currentUser) {
-                db.collection("users").doc(currentUser.uid).get()
-                    .then((doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            loadRideHistory(userData.accountType);
-                            
-                            // Carregar avaliações
-                            const ratingsContainer = document.getElementById('user-ratings-history');
-                            if (ratingsContainer && ratingService) {
-                                ratingService.loadUserRatingsHistory(currentUser.uid, ratingsContainer);
-                            }
-                        }
-                    });
-            }
-        });
-        
-        navSuggestions.addEventListener('click', () => {
-            hideAllSections();
-            navSuggestions.classList.add('active');
-            suggestionsSection.classList.remove('hidden');
-            
-            // Carregar sugestões
-            loadUserSuggestions();
-        });
-        
-        // Botão de enviar sugestão
-        const submitSuggestionButton = document.getElementById('submit-suggestion-button');
-        if (submitSuggestionButton) {
-            submitSuggestionButton.addEventListener('click', () => {
-                const title = document.getElementById('suggestion-title').value;
-                const text = document.getElementById('suggestion-text').value;
-                const type = document.getElementById('suggestion-type').value;
-                
-                if (!title || !text) {
-                    alert('Por favor, preencha o título e a descrição da sugestão.');
-                    return;
-                }
-                
-                if (currentUser) {
-                    db.collection('suggestions').add({
-                        userId: currentUser.uid,
-                        userName: document.getElementById('user-name').textContent,
-                        title: title,
-                        text: text,
-                        type: type,
-                        status: 'pending',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    })
-                    .then(() => {
-                        alert('Sugestão enviada com sucesso!');
-                        document.getElementById('suggestion-title').value = '';
-                        document.getElementById('suggestion-text').value = '';
-                        loadUserSuggestions();
-                    })
-                    .catch(error => {
-                        console.error('Erro ao enviar sugestão:', error);
-                        alert('Erro ao enviar sugestão: ' + error.message);
-                    });
-                }
-            });
-        }
-        
-        // Função para carregar sugestões do usuário
-        function loadUserSuggestions() {
-            const suggestionsList = document.getElementById('suggestions-list');
-            if (!suggestionsList || !currentUser) return;
-            
-            suggestionsList.innerHTML = '<p class="loading-message">Carregando sugestões...</p>';
-            
-            db.collection('suggestions')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('createdAt', 'desc')
-                .get()
-                .then(querySnapshot => {
-                    suggestionsList.innerHTML = '';
-                    
-                    if (querySnapshot.empty) {
-                        suggestionsList.innerHTML = '<p class="empty-message">Você ainda não enviou nenhuma sugestão.</p>';
-                        return;
-                    }
-                    
-                    querySnapshot.forEach(doc => {
-                        const suggestion = doc.data();
-                        const suggestionItem = document.createElement('div');
-                        suggestionItem.className = 'suggestion-item';
-                        
-                        const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
-                        
-                        let statusText = 'Pendente';
-                        let statusClass = 'status-pending';
-                        
-                        if (suggestion.status === 'approved') {
-                            statusText = 'Aprovada';
-                            statusClass = 'status-approved';
-                        } else if (suggestion.status === 'rejected') {
-                            statusText = 'Rejeitada';
-                            statusClass = 'status-rejected';
-                        } else if (suggestion.status === 'implemented') {
-                            statusText = 'Implementada';
-                            statusClass = 'status-implemented';
-                        }
-                        
-                        suggestionItem.innerHTML = `
-                            <div class="suggestion-header">
-                                <h4>${suggestion.title}</h4>
-                                <span class="suggestion-date">${date}</span>
-                            </div>
-                            <p class="suggestion-text">${suggestion.text}</p>
-                            <div class="suggestion-footer">
-                                <span class="suggestion-type">${suggestion.type}</span>
-                                <span class="suggestion-status ${statusClass}">${statusText}</span>
-                            </div>
-                        `;
-                        
-                        suggestionsList.appendChild(suggestionItem);
-                    });
-                })
-                .catch(error => {
-                    console.error('Erro ao carregar sugestões:', error);
-                    suggestionsList.innerHTML = '<p class="error-message">Erro ao carregar sugestões.</p>';
-                });
-        }
     </script>
 </body>
 </html>
