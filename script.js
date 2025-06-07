@@ -1,6 +1,6 @@
 // Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDcTmNZM7mgYT7PcuSFuByb2T6fw3gf0j4",
+  apiKey: "AIzaSyDcTmNZM7mgYT7PcuSFuByb2T6fw3gf0j4",
   authDomain: "oopsmujo.firebaseapp.com",
   projectId: "oopsmujo",
   storageBucket: "oopsmujo.firebasestorage.app",
