@@ -1,12 +1,12 @@
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDcTmNZM7mgYT7PcuSFuByb2T6fw3gf0j4",
-  authDomain: "oopsmujo.firebaseapp.com",
-  projectId: "oopsmujo",
-  storageBucket: "oopsmujo.firebasestorage.app",
-  messagingSenderId: "1032028058233",
-  appId: "1:1032028058233:web:6c9af952d2da504f465aa8"
-};
+    apiKey: "AIzaSyDcTmNZM7mgYT7PcuSFuByb2T6fw3gf0j4",
+    authDomain: "oopsmujo.firebaseapp.com",
+    projectId: "oopsmujo",
+    storageBucket: "oopsmujo.firebasestorage.app",
+    messagingSenderId: "1032028058233",
+    appId: "1:1032028058233:web:6c9af952d2da504f465aa8"
+  };
 
 // Inicialização do Firebase
 firebase.initializeApp(firebaseConfig);
