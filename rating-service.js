@@ -1,154 +1,170 @@
-// Serviço de Avaliação para o Oops Transportes Caramujo
-class RatingService {
-    constructor(firestore) {
-        this.db = firestore;
-        this.ratingsCollection = this.db.collection('ratings');
-    }
-
-    // Adiciona uma nova avaliação
-    async addRating(ratingData) {
-        try {
-            // Validação básica dos dados
-            if (!ratingData.fromUserId || !ratingData.toUserId || !ratingData.rideId || !ratingData.rating) {
-                throw new Error('Dados de avaliação incompletos');
+// Serviço de Avaliação para o aplicativo Oops Transportes Caramujo
+const RatingService = {
+    // Salvar uma nova avaliação
+    saveRating: function(db, ratingData) {
+        return new Promise((resolve, reject) => {
+            // Validar dados da avaliação
+            if (!ratingData.fromUserId || !ratingData.toUserId || !ratingData.rating) {
+                reject(new Error('Dados de avaliação incompletos'));
+                return;
             }
-
-            // Verifica se já existe uma avaliação para esta corrida e usuário
-            const existingRatings = await this.ratingsCollection
-                .where('rideId', '==', ratingData.rideId)
-                .where('fromUserId', '==', ratingData.fromUserId)
-                .get();
-
-            if (!existingRatings.empty) {
-                throw new Error('Você já avaliou esta corrida');
+            
+            // Verificar se a avaliação é válida (1-5)
+            if (ratingData.rating < 1 || ratingData.rating > 5) {
+                reject(new Error('Avaliação deve ser entre 1 e 5 estrelas'));
+                return;
             }
-
-            // Adiciona timestamp
+            
+            // Adicionar timestamp
             const ratingWithTimestamp = {
                 ...ratingData,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
-            // Salva a avaliação
-            const result = await this.ratingsCollection.add(ratingWithTimestamp);
             
-            // Atualiza a média de avaliações do usuário avaliado
-            await this.updateUserAverageRating(ratingData.toUserId);
-            
-            return result.id;
-        } catch (error) {
-            console.error('Erro ao adicionar avaliação:', error);
-            throw error;
-        }
-    }
-
-    // Obtém avaliações recebidas por um usuário
-    async getUserRatings(userId) {
-        try {
-            const ratingsSnapshot = await this.ratingsCollection
+            // Salvar avaliação no Firestore
+            db.collection('ratings').add(ratingWithTimestamp)
+                .then(docRef => {
+                    // Atualizar a média de avaliações do usuário avaliado
+                    this.updateUserRatingAverage(db, ratingData.toUserId)
+                        .then(() => {
+                            resolve(docRef.id);
+                        })
+                        .catch(error => {
+                            console.error("Erro ao atualizar média de avaliações:", error);
+                            // Mesmo se falhar a atualização da média, a avaliação foi salva
+                            resolve(docRef.id);
+                        });
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        });
+    },
+    
+    // Atualizar a média de avaliações de um usuário
+    updateUserRatingAverage: function(db, userId) {
+        return new Promise((resolve, reject) => {
+            // Buscar todas as avaliações do usuário
+            db.collection('ratings')
+                .where('toUserId', '==', userId)
+                .get()
+                .then(querySnapshot => {
+                    if (querySnapshot.empty) {
+                        // Se não houver avaliações, definir média como 0
+                        this.setUserRatingAverage(db, userId, 0, 0)
+                            .then(() => resolve())
+                            .catch(error => reject(error));
+                        return;
+                    }
+                    
+                    // Calcular média
+                    let totalRating = 0;
+                    const ratingsCount = querySnapshot.size;
+                    
+                    querySnapshot.forEach(doc => {
+                        const ratingData = doc.data();
+                        totalRating += ratingData.rating;
+                    });
+                    
+                    const average = totalRating / ratingsCount;
+                    
+                    // Atualizar média no documento do usuário
+                    this.setUserRatingAverage(db, userId, average, ratingsCount)
+                        .then(() => resolve())
+                        .catch(error => reject(error));
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        });
+    },
+    
+    // Definir a média de avaliações no documento do usuário
+    setUserRatingAverage: function(db, userId, average, count) {
+        return db.collection('users').doc(userId).update({
+            ratingAverage: average,
+            ratingCount: count
+        });
+    },
+    
+    // Obter avaliações recebidas por um usuário
+    getUserRatings: function(db, userId) {
+        return new Promise((resolve, reject) => {
+            db.collection('ratings')
                 .where('toUserId', '==', userId)
                 .orderBy('createdAt', 'desc')
-                .get();
-
-            const ratings = [];
-            ratingsSnapshot.forEach(doc => {
-                ratings.push({
-                    id: doc.id,
-                    ...doc.data()
+                .get()
+                .then(async querySnapshot => {
+                    if (querySnapshot.empty) {
+                        resolve([]);
+                        return;
+                    }
+                    
+                    const ratings = [];
+                    const userPromises = [];
+                    const userCache = {};
+                    
+                    // Primeiro, coletamos todos os IDs de usuários que deram avaliações
+                    querySnapshot.forEach(doc => {
+                        const ratingData = doc.data();
+                        const fromUserId = ratingData.fromUserId;
+                        
+                        if (!userCache[fromUserId]) {
+                            userPromises.push(
+                                db.collection('users').doc(fromUserId).get()
+                                    .then(userDoc => {
+                                        if (userDoc.exists) {
+                                            userCache[fromUserId] = userDoc.data();
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Erro ao buscar usuário:", error);
+                                    })
+                            );
+                        }
+                    });
+                    
+                    // Aguardamos todas as promessas de busca de usuários
+                    await Promise.all(userPromises);
+                    
+                    // Agora montamos o array de avaliações com os dados dos usuários
+                    querySnapshot.forEach(doc => {
+                        const ratingData = doc.data();
+                        const fromUserId = ratingData.fromUserId;
+                        const fromUser = userCache[fromUserId] || { name: 'Usuário desconhecido' };
+                        
+                        ratings.push({
+                            id: doc.id,
+                            rating: ratingData.rating,
+                            comment: ratingData.comment || '',
+                            fromUserName: fromUser.name,
+                            fromUserType: fromUser.type,
+                            createdAt: ratingData.createdAt ? ratingData.createdAt.toDate() : new Date()
+                        });
+                    });
+                    
+                    resolve(ratings);
+                })
+                .catch(error => {
+                    reject(error);
                 });
-            });
-
-            return ratings;
-        } catch (error) {
-            console.error('Erro ao obter avaliações do usuário:', error);
-            throw error;
-        }
+        });
+    },
+    
+    // Verificar se um usuário já avaliou outro após uma corrida específica
+    checkIfAlreadyRated: function(db, fromUserId, toUserId, rideId) {
+        return new Promise((resolve, reject) => {
+            db.collection('ratings')
+                .where('fromUserId', '==', fromUserId)
+                .where('toUserId', '==', toUserId)
+                .where('rideId', '==', rideId)
+                .get()
+                .then(querySnapshot => {
+                    resolve(!querySnapshot.empty);
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        });
     }
-
-    // Calcula e atualiza a média de avaliações de um usuário
-    async updateUserAverageRating(userId) {
-        try {
-            const ratingsSnapshot = await this.ratingsCollection
-                .where('toUserId', '==', userId)
-                .get();
-
-            if (ratingsSnapshot.empty) {
-                // Não há avaliações para este usuário
-                return;
-            }
-
-            let totalRating = 0;
-            let count = 0;
-
-            ratingsSnapshot.forEach(doc => {
-                const rating = doc.data().rating;
-                if (rating && typeof rating === 'number') {
-                    totalRating += rating;
-                    count++;
-                }
-            });
-
-            const averageRating = count > 0 ? totalRating / count : 0;
-
-            // Atualiza o documento do usuário com a média de avaliações
-            await this.db.collection('users').doc(userId).update({
-                averageRating: averageRating,
-                ratingCount: count
-            });
-
-            return { averageRating, count };
-        } catch (error) {
-            console.error('Erro ao atualizar média de avaliações:', error);
-            throw error;
-        }
-    }
-
-    // Obtém a média de avaliações de um usuário
-    async getUserAverageRating(userId) {
-        try {
-            const userDoc = await this.db.collection('users').doc(userId).get();
-            
-            if (!userDoc.exists) {
-                throw new Error('Usuário não encontrado');
-            }
-            
-            const userData = userDoc.data();
-            return {
-                averageRating: userData.averageRating || 0,
-                ratingCount: userData.ratingCount || 0
-            };
-        } catch (error) {
-            console.error('Erro ao obter média de avaliações:', error);
-            throw error;
-        }
-    }
-
-    // Formata a exibição das estrelas de avaliação
-    formatRatingStars(rating) {
-        const fullStars = Math.floor(rating);
-        const halfStar = rating % 1 >= 0.5;
-        const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-        
-        let starsHTML = '';
-        
-        // Estrelas cheias
-        for (let i = 0; i < fullStars; i++) {
-            starsHTML += '★';
-        }
-        
-        // Meia estrela
-        if (halfStar) {
-            starsHTML += '★';
-        }
-        
-        // Estrelas vazias
-        for (let i = 0; i < emptyStars; i++) {
-            starsHTML += '☆';
-        }
-        
-        return starsHTML;
-    }
-}
-
-// Exporta o serviço
-let ratingService;
+};
