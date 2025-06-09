@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0f3460">
     <title>Oops Transportes Caramujo</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192x192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="stylesheet" href="/oopsmujo/style.css">
+    <link rel="manifest" href="/oopsmujo/manifest.json">
+    <link rel="icon" href="/oopsmujo/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/oopsmujo/icons/icon-192x192.png">
 </head>
 <body class="dark-theme">
     <div id="app">
         <!-- Tela de Login -->
         <div id="login-screen" class="screen">
             <div class="logo-container">
-                <img src="icons/icon-512x512.png" alt="Logo" class="logo">
+                <img src="/oopsmujo/icons/icon-512x512.png" alt="Logo" class="logo">
                 <h1>Oops Transportes Caramujo</h1>
             </div>
             <div class="tabs">
@@ -102,7 +102,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="passenger-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="passenger-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="passenger-name">Usuário</span>
                     <button id="passenger-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -142,7 +142,7 @@
                         <div id="driver-contact" style="display: none;">
                             <p><strong>Telefone:</strong> <span id="driver-phone"></span></p>
                             <a id="whatsapp-link" href="#" target="_blank" class="whatsapp-btn">
-                                <img src="icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
+                                <img src="/oopsmujo/icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
                                 Contatar via WhatsApp
                             </a>
                         </div>
@@ -192,7 +192,7 @@
                 <h2>Seu Perfil</h2>
                 <div class="profile-container">
                     <div class="profile-picture-container">
-                        <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
+                        <img id="profile-picture-preview" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
                         <label for="profile-picture-upload" class="btn secondary-btn">Alterar Foto</label>
                         <input type="file" id="profile-picture-upload" accept="image/*" style="display: none;">
                     </div>
@@ -248,7 +248,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="driver-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="driver-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="driver-name">Mototaxista</span>
                     <button id="driver-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -589,18 +589,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     
     <!-- Serviços -->
-    <script src="geo-service.js"></script>
-    <script src="rating-service.js"></script>
-    <script src="admin-service.js"></script>
+    <script src="/oopsmujo/geo-service.js"></script>
+    <script src="/oopsmujo/rating-service.js"></script>
+    <script src="/oopsmujo/admin-service.js"></script>
     
     <!-- Script Principal -->
-    <script src="script.js"></script>
+    <script src="/oopsmujo/script.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register('/oopsmujo/service-worker.js')
                     .then(registration => {
                         console.log('Service Worker registrado com sucesso:', registration);
                     })
