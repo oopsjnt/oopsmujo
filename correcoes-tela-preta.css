@@ -1,0 +1,101 @@
+/* Correções para resolver o problema da tela preta */
+
+/* Garantir que o fundo e texto tenham cores visíveis */
+body {
+    background-color: #f5f5f5 !important;
+    color: #333 !important;
+}
+
+body.dark-theme {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Forçar exibição das telas principais */
+.screen {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Garantir que a tela de login seja exibida */
+#login-screen {
+    display: block !important;
+}
+
+/* Garantir que os elementos principais sejam visíveis */
+#app, .form-container, .form-group, .tabs, .tab-content {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Garantir que o conteúdo seja visível no tema escuro */
+body.dark-theme h1,
+body.dark-theme h2,
+body.dark-theme h3,
+body.dark-theme p,
+body.dark-theme label,
+body.dark-theme button,
+body.dark-theme input,
+body.dark-theme textarea,
+body.dark-theme select {
+    color: #e0e0e0 !important;
+}
+
+/* Garantir que os botões sejam visíveis */
+.btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.primary-btn {
+    background-color: #0f3460 !important;
+    color: white !important;
+}
+
+body.dark-theme .primary-btn {
+    background-color: #4a90e2 !important;
+    color: white !important;
+}
+
+/* Garantir que os inputs sejam visíveis */
+input, textarea, select {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+body.dark-theme input,
+body.dark-theme textarea,
+body.dark-theme select {
+    background-color: #333 !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #444 !important;
+}
+
+/* Garantir que os termos de uso sejam visíveis */
+.terms-content {
+    color: #333 !important;
+}
+
+body.dark-theme .terms-content {
+    color: #e0e0e0 !important;
+}
+
+/* Corrigir visibilidade de elementos específicos */
+.tab-btn.active {
+    border-bottom-color: #0f3460 !important;
+    color: #0f3460 !important;
+}
+
+body.dark-theme .tab-btn.active {
+    border-bottom-color: #4a90e2 !important;
+    color: #4a90e2 !important;
+}
+
+/* Garantir que apenas os elementos que devem estar ocultos fiquem ocultos */
+.hidden, 
+.tab-content:not(.active) {
+    display: none !important;
+}
