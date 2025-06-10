@@ -3,17 +3,17 @@ const CACHE_NAME = 'oops-transportes-caramujo-v1';
 
 // Arquivos a serem cacheados
 const urlsToCache = [
-  '/oopsmujo/',
-  '/oopsmujo/index.html',
-  '/oopsmujo/style.css',
-  '/oopsmujo/script.js',
-  '/oopsmujo/geo-service.js',
-  '/oopsmujo/rating-service.js',
-  '/oopsmujo/admin-service.js',
-  '/oopsmujo/icons/icon-192x192.png',
-  '/oopsmujo/icons/icon-512x512.png',
-  '/oopsmujo/icons/default-profile.png',
-  '/oopsmujo/icons/whatsapp.png'
+  '/',
+  '/index.html',
+  '/style.css',
+  '/script.js',
+  '/geo-service.js',
+  '/rating-service.js',
+  '/admin-service.js',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/default-profile.png',
+  '/icons/whatsapp.png'
 ];
 
 // Instalação do service worker
@@ -88,10 +88,10 @@ self.addEventListener('push', event => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/oopsmujo/icons/icon-192x192.png',
-    badge: '/oopsmujo/icons/icon-192x192.png',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
     data: {
-      url: data.url || '/oopsmujo/'
+      url: data.url || '/'
     }
   };
 

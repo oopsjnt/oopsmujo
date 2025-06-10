@@ -5,19 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0f3460">
     <title>Oops Transportes Caramujo</title>
-    <link rel="stylesheet" href="/oopsmujo/style.css">
-    <link rel="manifest" href="/oopsmujo/manifest.json">
-    <link rel="icon" href="/oopsmujo/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" href="/oopsmujo/icons/icon-192x192.png">
-    <link rel="stylesheet" href="correcoes-tela-preta.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <style>
+        /* Correções para restaurar a navegação por abas */
+        .screen {
+            display: none; /* Restaurar comportamento padrão */
+        }
+        
+        #login-screen {
+            display: block; /* Apenas a tela de login deve ser visível inicialmente */
+        }
+        
+        .tab-content {
+            display: none; /* Ocultar todos os conteúdos de abas por padrão */
+        }
+        
+        .tab-content.active {
+            display: block; /* Exibir apenas o conteúdo da aba ativa */
+        }
+        
+        /* Manter o tema escuro com boa visibilidade */
+        body.dark-theme {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        
+        /* Garantir que o conteúdo seja visível no tema escuro */
+        body.dark-theme h1,
+        body.dark-theme h2,
+        body.dark-theme h3,
+        body.dark-theme p,
+        body.dark-theme label,
+        body.dark-theme button {
+            color: #e0e0e0;
+        }
+        
+        body.dark-theme input,
+        body.dark-theme textarea,
+        body.dark-theme select {
+            background-color: #333;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+    </style>
 </head>
-<script src="correcao-tela-preta.js"></script>   
 <body class="dark-theme">
     <div id="app">
         <!-- Tela de Login -->
         <div id="login-screen" class="screen">
             <div class="logo-container">
-                <img src="/oopsmujo/icons/icon-512x512.png" alt="Logo" class="logo">
+                <img src="icons/icon-512x512.png" alt="Logo" class="logo">
                 <h1>Oops Transportes Caramujo</h1>
             </div>
             <div class="tabs">
@@ -104,7 +144,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="passenger-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="passenger-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="passenger-name">Usuário</span>
                     <button id="passenger-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -144,7 +184,7 @@
                         <div id="driver-contact" style="display: none;">
                             <p><strong>Telefone:</strong> <span id="driver-phone"></span></p>
                             <a id="whatsapp-link" href="#" target="_blank" class="whatsapp-btn">
-                                <img src="/oopsmujo/icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
+                                <img src="icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
                                 Contatar via WhatsApp
                             </a>
                         </div>
@@ -194,7 +234,7 @@
                 <h2>Seu Perfil</h2>
                 <div class="profile-container">
                     <div class="profile-picture-container">
-                        <img id="profile-picture-preview" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
+                        <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
                         <label for="profile-picture-upload" class="btn secondary-btn">Alterar Foto</label>
                         <input type="file" id="profile-picture-upload" accept="image/*" style="display: none;">
                     </div>
@@ -250,7 +290,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="driver-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="driver-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="driver-name">Mototaxista</span>
                     <button id="driver-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -591,18 +631,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     
     <!-- Serviços -->
-    <script src="/oopsmujo/geo-service.js"></script>
-    <script src="/oopsmujo/rating-service.js"></script>
-    <script src="/oopsmujo/admin-service.js"></script>
+    <script src="geo-service.js"></script>
+    <script src="rating-service.js"></script>
+    <script src="admin-service.js"></script>
     
     <!-- Script Principal -->
-    <script src="/oopsmujo/script.js"></script>
+    <script src="script.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/oopsmujo/service-worker.js')
+                navigator.serviceWorker.register('service-worker.js')
                     .then(registration => {
                         console.log('Service Worker registrado com sucesso:', registration);
                     })
@@ -611,6 +651,73 @@
                     });
             });
         }
+    </script>
+    
+    <!-- Script de correção para navegação por abas -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Script de restauração de navegação por abas iniciado');
+            
+            // Ocultar todas as telas exceto a de login
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                if (screen.id !== 'login-screen') {
+                    screen.style.display = 'none';
+                } else {
+                    screen.style.display = 'block';
+                }
+            });
+            
+            // Ocultar todos os conteúdos de abas exceto os ativos
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                if (!content.classList.contains('active')) {
+                    content.style.display = 'none';
+                } else {
+                    content.style.display = 'block';
+                }
+            });
+            
+            // Restaurar a funcionalidade de navegação por abas
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            
+            tabBtns.forEach(btn => {
+                // Remover listeners existentes para evitar duplicação
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Encontrar o container pai (para limitar o escopo)
+                    const parentContainer = this.closest('.screen');
+                    if (!parentContainer) return;
+                    
+                    // Remover classe active de todos os botões no mesmo container
+                    const siblingBtns = parentContainer.querySelectorAll('.tab-btn');
+                    siblingBtns.forEach(b => b.classList.remove('active'));
+                    
+                    // Remover classe active de todos os conteúdos no mesmo container
+                    const siblingContents = parentContainer.querySelectorAll('.tab-content');
+                    siblingContents.forEach(c => {
+                        c.classList.remove('active');
+                        c.style.display = 'none';
+                    });
+                    
+                    // Adicionar classe active ao botão clicado
+                    this.classList.add('active');
+                    
+                    // Adicionar classe active ao conteúdo correspondente
+                    const activeContent = parentContainer.querySelector('#' + tabId);
+                    if (activeContent) {
+                        activeContent.classList.add('active');
+                        activeContent.style.display = 'block';
+                    }
+                });
+            });
+            
+            console.log('Script de restauração de navegação por abas concluído');
+        });
     </script>
 </body>
 </html>
