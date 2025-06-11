@@ -8,2435 +8,1995 @@ const firebaseConfig = {
   appId: "1:1032028058233:web:6c9af952d2da504f465aa8"
 };
 
-// Inicialização do Firebase
+// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
+
+// Referências ao Firebase
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
+// Inicializar serviços
+const geoService = window.GeoService;
+const ratingService = window.RatingService.init(db);
+
 // Variáveis globais
 let currentUser = null;
-let userType = null;
-let deferredPrompt = null;
-let currentRide = null;
-let isAdmin = false;
+let currentUserData = null;
+let watchLocationId = null;
+let rideCheckInterval = null;
+let timeoutCheckInterval = null;
 
 // Elementos DOM - Autenticação
 const authSection = document.getElementById('auth-section');
+const appSection = document.getElementById('app-section');
 const loginTab = document.getElementById('login-tab');
 const registerTab = document.getElementById('register-tab');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const loginButton = document.getElementById('login-button');
 const registerButton = document.getElementById('register-button');
-const termsCheckbox = document.getElementById('terms-checkbox');
-const showTermsButton = document.getElementById('show-terms');
-const termsModal = document.getElementById('terms-modal');
-const acceptTermsButton = document.getElementById('accept-terms');
-
-// Elementos DOM - App Principal
-const appSection = document.getElementById('app-section');
-const adminSection = document.getElementById('admin-section');
-const userProfilePicture = document.getElementById('user-profile-picture');
-const userName = document.getElementById('user-name');
 const logoutButton = document.getElementById('logout-button');
-const adminLogoutButton = document.getElementById('admin-logout-button');
-const profileButton = document.getElementById('profile-button');
 
-// Elementos DOM - Navegação
-const navMain = document.getElementById('nav-main');
-const navHistory = document.getElementById('nav-history');
-const navProfile = document.getElementById('nav-profile');
-const navSuggestions = document.getElementById('nav-suggestions');
-const navPrices = document.getElementById('nav-prices');
-const mainSection = document.getElementById('main-section');
-const historySection = document.getElementById('history-section');
+// Elementos DOM - Perfil
+const userNameElement = document.getElementById('user-name');
+const userProfilePicture = document.getElementById('user-profile-picture');
+const profileButton = document.getElementById('profile-button');
 const profileSection = document.getElementById('profile-section');
-const suggestionsSection = document.getElementById('suggestions-section');
-const pricesSection = document.getElementById('prices-section');
+const profilePicturePreview = document.getElementById('profile-picture-preview');
+const profilePictureInput = document.getElementById('profile-picture');
+const profileNameInput = document.getElementById('profile-name');
+const profilePhoneInput = document.getElementById('profile-phone');
+const saveProfileButton = document.getElementById('save-profile-button');
 
 // Elementos DOM - Interface do Passageiro
 const passengerInterface = document.getElementById('passenger-interface');
-const pickupLocation = document.getElementById('pickup-location');
-const destination = document.getElementById('destination');
+const pickupLocationInput = document.getElementById('pickup-location');
+const destinationInput = document.getElementById('destination');
 const useCurrentLocationButton = document.getElementById('use-current-location');
 const locationStatus = document.getElementById('location-status');
 const requestRideButton = document.getElementById('request-ride-button');
-const rideStatus = document.getElementById('ride-status');
+const nearbyDriversContainer = document.getElementById('nearby-drivers');
+const rideStatusContainer = document.getElementById('ride-status');
 const statusMessage = document.getElementById('status-message');
-const whatsappContact = document.getElementById('whatsapp-contact');
 const cancelRideButton = document.getElementById('cancel-ride-button');
-const nearbyDrivers = document.getElementById('nearby-drivers');
+const whatsappContactContainer = document.getElementById('whatsapp-contact');
 
 // Elementos DOM - Interface do Mototaxista
 const driverInterface = document.getElementById('driver-interface');
-const driverStatus = document.getElementById('driver-status');
-const driverRating = document.getElementById('driver-rating');
+const driverStatusSelect = document.getElementById('driver-status');
 const ridesList = document.getElementById('rides-list');
-const currentRideElement = document.getElementById('current-ride');
-const passengerName = document.getElementById('passenger-name');
-const ridePickup = document.getElementById('ride-pickup');
-const rideDestination = document.getElementById('ride-destination');
-const whatsappContactDriver = document.getElementById('whatsapp-contact-driver');
+const currentRideContainer = document.getElementById('current-ride');
+const passengerNameElement = document.getElementById('passenger-name');
+const ridePickupElement = document.getElementById('ride-pickup');
+const rideDestinationElement = document.getElementById('ride-destination');
 const completeRideButton = document.getElementById('complete-ride-button');
+const whatsappContactDriverContainer = document.getElementById('whatsapp-contact-driver');
 
 // Elementos DOM - Histórico
-const rideHistory = document.getElementById('ride-history');
+const historySection = document.getElementById('history-section');
+const rideHistoryContainer = document.getElementById('ride-history');
 const userRatingsHistory = document.getElementById('user-ratings-history');
 
-// Elementos DOM - Perfil
-const profilePicturePreview = document.getElementById('profile-picture-preview');
-const profilePictureInput = document.getElementById('profile-picture');
-const saveProfileButton = document.getElementById('save-profile-button');
-
 // Elementos DOM - Sugestões
-const suggestionTitle = document.getElementById('suggestion-title');
-const suggestionText = document.getElementById('suggestion-text');
-const suggestionType = document.getElementById('suggestion-type');
+const suggestionsSection = document.getElementById('suggestions-section');
+const suggestionTitleInput = document.getElementById('suggestion-title');
+const suggestionTextInput = document.getElementById('suggestion-text');
+const suggestionTypeSelect = document.getElementById('suggestion-type');
 const submitSuggestionButton = document.getElementById('submit-suggestion-button');
 const suggestionsList = document.getElementById('suggestions-list');
 
-// Elementos DOM - Preços
-const priceTableImage = document.getElementById('price-table-image');
-
-// Elementos DOM - Feedback de Cancelamento
-const cancelFeedbackContainer = document.getElementById('cancel-feedback-container');
-const otherReasonTextarea = document.getElementById('other-reason');
-const submitCancelFeedback = document.getElementById('submit-cancel-feedback');
-
-// Elementos DOM - PWA
-const pwaBanner = document.getElementById('pwa-banner');
-const installPwaButton = document.getElementById('install-pwa');
-const closePwaBannerButton = document.getElementById('close-pwa-banner');
-
 // Elementos DOM - Admin
-const adminNavDashboard = document.getElementById('admin-nav-dashboard');
-const adminNavUsers = document.getElementById('admin-nav-users');
-const adminNavRides = document.getElementById('admin-nav-rides');
-const adminNavSuggestions = document.getElementById('admin-nav-suggestions');
-const adminNavSettings = document.getElementById('admin-nav-settings');
-const adminDashboard = document.getElementById('admin-dashboard');
-const adminUsers = document.getElementById('admin-users');
-const adminRides = document.getElementById('admin-rides');
+const adminSection = document.getElementById('admin-section');
+const totalUsersElement = document.getElementById('total-users');
+const totalRidesElement = document.getElementById('total-rides');
+const totalSuggestionsElement = document.getElementById('total-suggestions');
+const totalRatingsElement = document.getElementById('total-ratings');
+const usersManagement = document.getElementById('users-management');
 const adminSuggestions = document.getElementById('admin-suggestions');
-const adminSettings = document.getElementById('admin-settings');
-const totalUsers = document.getElementById('total-users');
-const activeDrivers = document.getElementById('active-drivers');
-const ridesToday = document.getElementById('rides-today');
-const totalRides = document.getElementById('total-rides');
-const activityList = document.getElementById('activity-list');
-const userSearch = document.getElementById('user-search');
-const userFilter = document.getElementById('user-filter');
-const usersList = document.getElementById('users-list');
-const rideSearch = document.getElementById('ride-search');
-const rideFilter = document.getElementById('ride-filter');
-const adminRidesList = document.getElementById('admin-rides-list');
-const suggestionSearch = document.getElementById('suggestion-search');
-const suggestionFilter = document.getElementById('suggestion-filter');
-const adminSuggestionsList = document.getElementById('admin-suggestions-list');
-const timeoutSetting = document.getElementById('timeout-setting');
-const saveSettings = document.getElementById('save-settings');
-const priceTableUpload = document.getElementById('price-table-upload');
-const uploadPriceTable = document.getElementById('upload-price-table');
+const adminRatings = document.getElementById('admin-ratings');
 
-// Event Listeners - Autenticação
-document.addEventListener('DOMContentLoaded', () => {
-    // Verificar autenticação
-    auth.onAuthStateChanged(handleAuthStateChanged);
-    
-    // Tabs de autenticação
-    loginTab.addEventListener('click', () => {
-        loginTab.classList.add('active');
-        registerTab.classList.remove('active');
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-    });
-    
-    registerTab.addEventListener('click', () => {
-        registerTab.classList.add('active');
-        loginTab.classList.remove('active');
-        registerForm.classList.remove('hidden');
-        loginForm.classList.add('hidden');
-    });
-    
-    // Login
-    loginButton.addEventListener('click', handleLogin);
-    
-    // Registro
-    termsCheckbox.addEventListener('change', () => {
-        registerButton.disabled = !termsCheckbox.checked;
-    });
-    
-    showTermsButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        termsModal.classList.remove('hidden');
-    });
-    
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        termsModal.classList.add('hidden');
-    });
-    
-    acceptTermsButton.addEventListener('click', () => {
-        termsCheckbox.checked = true;
-        registerButton.disabled = false;
-        termsModal.classList.add('hidden');
-    });
-    
-    registerButton.addEventListener('click', handleRegister);
-    
-    // Logout
-    logoutButton.addEventListener('click', handleLogout);
-    if (adminLogoutButton) {
-        adminLogoutButton.addEventListener('click', handleLogout);
-    }
-    
-    // Navegação
-    navMain.addEventListener('click', () => showSection(mainSection, navMain));
-    navHistory.addEventListener('click', () => {
-        showSection(historySection, navHistory);
-        loadRideHistory();
-        loadUserRatings();
-    });
-    navProfile.addEventListener('click', () => showSection(profileSection, navProfile));
-    navSuggestions.addEventListener('click', () => {
-        showSection(suggestionsSection, navSuggestions);
-        loadUserSuggestions();
-    });
-    navPrices.addEventListener('click', () => {
-        showSection(pricesSection, navPrices);
-        loadPriceTable();
-    });
-    
-    // Interface do Passageiro
-    if (useCurrentLocationButton) {
-        useCurrentLocationButton.addEventListener('click', handleGetCurrentLocation);
-    }
-    
-    if (requestRideButton) {
-        requestRideButton.addEventListener('click', handleRequestRide);
-    }
-    
-    if (cancelRideButton) {
-        cancelRideButton.addEventListener('click', showCancelFeedback);
-    }
-    
-    // Interface do Mototaxista
-    if (driverStatus) {
-        driverStatus.addEventListener('change', handleDriverStatusChange);
-    }
-    
-    if (completeRideButton) {
-        completeRideButton.addEventListener('click', handleCompleteRide);
-    }
-    
-    // Perfil
-    if (profilePictureInput) {
-        profilePictureInput.addEventListener('change', handleProfilePictureChange);
-    }
-    
-    if (saveProfileButton) {
-        saveProfileButton.addEventListener('click', handleSaveProfile);
-    }
-    
-    // Sugestões
-    if (submitSuggestionButton) {
-        submitSuggestionButton.addEventListener('click', handleSubmitSuggestion);
-    }
-    
-    // Feedback de Cancelamento
-    document.querySelectorAll('input[name="cancel-reason"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (radio.value === 'other') {
-                otherReasonTextarea.classList.remove('hidden');
-            } else {
-                otherReasonTextarea.classList.add('hidden');
-            }
-        });
-    });
-    
-    document.querySelector('.close-modal-feedback').addEventListener('click', () => {
-        cancelFeedbackContainer.classList.add('hidden');
-    });
-    
-    if (submitCancelFeedback) {
-        submitCancelFeedback.addEventListener('click', handleCancelRide);
-    }
-    
-    // PWA
-    if (installPwaButton) {
-        installPwaButton.addEventListener('click', handleInstallPwa);
-    }
-    
-    if (closePwaBannerButton) {
-        closePwaBannerButton.addEventListener('click', () => {
-            pwaBanner.classList.add('hidden');
-            localStorage.setItem('pwaBannerClosed', 'true');
-        });
-    }
-    
-    // Admin
-    if (adminNavDashboard) {
-        adminNavDashboard.addEventListener('click', () => {
-            showAdminSection(adminDashboard, adminNavDashboard);
-            loadAdminDashboard();
-        });
-    }
-    
-    if (adminNavUsers) {
-        adminNavUsers.addEventListener('click', () => {
-            showAdminSection(adminUsers, adminNavUsers);
-            loadAdminUsers();
-        });
-    }
-    
-    if (adminNavRides) {
-        adminNavRides.addEventListener('click', () => {
-            showAdminSection(adminRides, adminNavRides);
-            loadAdminRides();
-        });
-    }
-    
-    if (adminNavSuggestions) {
-        adminNavSuggestions.addEventListener('click', () => {
-            showAdminSection(adminSuggestions, adminNavSuggestions);
-            loadAdminSuggestions();
-        });
-    }
-    
-    if (adminNavSettings) {
-        adminNavSettings.addEventListener('click', () => {
-            showAdminSection(adminSettings, adminNavSettings);
-            loadAdminSettings();
-        });
-    }
-    
-    if (userSearch) {
-        userSearch.addEventListener('input', () => {
-            loadAdminUsers(userSearch.value, userFilter.value);
-        });
-    }
-    
-    if (userFilter) {
-        userFilter.addEventListener('change', () => {
-            loadAdminUsers(userSearch.value, userFilter.value);
-        });
-    }
-    
-    if (rideSearch) {
-        rideSearch.addEventListener('input', () => {
-            loadAdminRides(rideSearch.value, rideFilter.value);
-        });
-    }
-    
-    if (rideFilter) {
-        rideFilter.addEventListener('change', () => {
-            loadAdminRides(rideSearch.value, rideFilter.value);
-        });
-    }
-    
-    if (suggestionSearch) {
-        suggestionSearch.addEventListener('input', () => {
-            loadAdminSuggestions(suggestionSearch.value, suggestionFilter.value);
-        });
-    }
-    
-    if (suggestionFilter) {
-        suggestionFilter.addEventListener('change', () => {
-            loadAdminSuggestions(suggestionSearch.value, suggestionFilter.value);
-        });
-    }
-    
-    if (saveSettings) {
-        saveSettings.addEventListener('click', handleSaveSettings);
-    }
-    
-    if (uploadPriceTable) {
-        uploadPriceTable.addEventListener('click', handleUploadPriceTable);
-    }
-    
-    // PWA
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        if (!localStorage.getItem('pwaBannerClosed')) {
-            pwaBanner.classList.remove('hidden');
-        }
-    });
+// Elementos DOM - Preços
+const pricingSection = document.getElementById('pricing-section');
+const pricingContent = document.getElementById('pricing-content');
+const pricingAdmin = document.getElementById('pricing-admin');
+const pricingImageInput = document.getElementById('pricing-image');
+const uploadPricingButton = document.getElementById('upload-pricing-button');
+
+// Elementos DOM - Pagamentos
+const paymentsSection = document.getElementById('payments-section');
+const paymentStatus = document.getElementById('payment-status');
+const paymentHistoryList = document.getElementById('payment-history-list');
+
+// Elementos DOM - Navegação
+const navMain = document.getElementById('nav-main');
+const navProfile = document.getElementById('nav-profile');
+const navHistory = document.getElementById('nav-history');
+const navSuggestions = document.getElementById('nav-suggestions');
+const navAdmin = document.getElementById('nav-admin');
+const navPricing = document.getElementById('nav-pricing');
+const navPayments = document.getElementById('nav-payments');
+
+// Elementos DOM - Termos de Uso
+const acceptTermsCheckbox = document.getElementById('accept-terms');
+
+// Elementos DOM - Tipo de Serviço
+const servicePassengerRadio = document.getElementById('service-passenger');
+const serviceDeliveryRadio = document.getElementById('service-delivery');
+
+// Elementos DOM - Mototaxistas Disponíveis
+const driversListContainer = document.getElementById('drivers-list');
+
+// Eventos - Autenticação
+loginTab.addEventListener('click', () => {
+    loginTab.classList.add('active');
+    registerTab.classList.remove('active');
+    loginForm.classList.remove('hidden');
+    registerForm.classList.add('hidden');
 });
 
-// Funções de Autenticação
-async function handleAuthStateChanged(user) {
-    try {
-        if (user) {
-            currentUser = user;
-            
-            // Verificar se é admin
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                userType = userData.type;
-                isAdmin = userData.isAdmin || false;
-                
-                if (isAdmin) {
-                    // Mostrar interface de admin
-                    authSection.classList.add('hidden');
-                    appSection.classList.add('hidden');
-                    adminSection.classList.remove('hidden');
-                    loadAdminDashboard();
-                    return;
-                }
-                
-                // Atualizar UI com dados do usuário
-                userName.textContent = userData.name || 'Usuário';
-                if (userData.profilePicture) {
-                    userProfilePicture.src = userData.profilePicture;
-                    profilePicturePreview.src = userData.profilePicture;
-                }
-                
-                // Mostrar interface apropriada
-                authSection.classList.add('hidden');
-                appSection.classList.remove('hidden');
-                
-                if (userType === 'driver') {
-                    passengerInterface.classList.add('hidden');
-                    driverInterface.classList.remove('hidden');
-                    loadDriverInfo();
-                    startRidesListener();
-                } else {
-                    driverInterface.classList.add('hidden');
-                    passengerInterface.classList.remove('hidden');
-                    checkActiveRide();
-                }
-            } else {
-                console.error('Documento do usuário não encontrado');
-                auth.signOut();
-            }
-        } else {
-            // Usuário não autenticado
-            currentUser = null;
-            userType = null;
-            isAdmin = false;
-            authSection.classList.remove('hidden');
-            appSection.classList.add('hidden');
-            adminSection.classList.add('hidden');
-            loginTab.click();
-        }
-    } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        showToast('Erro ao verificar autenticação. Tente novamente.', 'error');
-    }
-}
+registerTab.addEventListener('click', () => {
+    registerTab.classList.add('active');
+    loginTab.classList.remove('active');
+    registerForm.classList.remove('hidden');
+    loginForm.classList.add('hidden');
+});
 
-async function handleLogin() {
+loginButton.addEventListener('click', () => {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
     
     if (!email || !password) {
-        showToast('Por favor, preencha todos os campos.', 'error');
+        alert('Por favor, preencha todos os campos.');
         return;
     }
     
-    try {
-        await auth.signInWithEmailAndPassword(email, password);
-        // Auth state change listener vai cuidar do redirecionamento
-    } catch (error) {
-        console.error('Erro ao fazer login:', error);
-        showToast('Erro ao fazer login. Verifique suas credenciais.', 'error');
-    }
-}
+    auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            console.log('Login bem-sucedido');
+        })
+        .catch((error) => {
+            console.error('Erro no login:', error);
+            alert('Erro no login: ' + error.message);
+        });
+});
 
-async function handleRegister() {
+registerButton.addEventListener('click', () => {
     const name = document.getElementById('register-name').value;
     const phone = document.getElementById('register-phone').value;
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const accountType = document.querySelector('input[name="account-type"]:checked').value;
+    const acceptedTerms = acceptTermsCheckbox.checked;
     
     if (!name || !phone || !email || !password) {
-        showToast('Por favor, preencha todos os campos.', 'error');
+        alert('Por favor, preencha todos os campos.');
         return;
     }
     
-    if (!termsCheckbox.checked) {
-        showToast('Você precisa aceitar os termos de uso.', 'error');
+    if (!acceptedTerms) {
+        alert('Você deve aceitar os termos de uso para se cadastrar.');
         return;
     }
     
-    try {
-        // Criar usuário no Firebase Auth
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-        
-        // Salvar dados adicionais no Firestore
-        await db.collection('users').doc(user.uid).set({
-            name: name,
-            phone: phone,
-            email: email,
-            type: accountType,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            status: accountType === 'driver' ? 'unavailable' : 'active',
-            isAdmin: false
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            
+            return db.collection('users').doc(user.uid).set({
+                name: name,
+                phone: phone,
+                email: email,
+                accountType: accountType,
+                status: accountType === 'driver' ? 'unavailable' : 'active',
+                acceptedTerms: true,
+                acceptedTermsAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        })
+        .then(() => {
+            console.log('Cadastro bem-sucedido');
+        })
+        .catch((error) => {
+            console.error('Erro no cadastro:', error);
+            alert('Erro no cadastro: ' + error.message);
         });
-        
-        showToast('Cadastro realizado com sucesso!', 'success');
-        // Auth state change listener vai cuidar do redirecionamento
-    } catch (error) {
-        console.error('Erro ao cadastrar:', error);
-        showToast('Erro ao cadastrar. Tente novamente.', 'error');
-    }
-}
+});
 
-function handleLogout() {
+logoutButton.addEventListener('click', () => {
     auth.signOut()
         .then(() => {
-            // Auth state change listener vai cuidar do redirecionamento
+            console.log('Logout bem-sucedido');
         })
-        .catch(error => {
-            console.error('Erro ao fazer logout:', error);
-            showToast('Erro ao fazer logout. Tente novamente.', 'error');
+        .catch((error) => {
+            console.error('Erro no logout:', error);
         });
-}
+});
 
-// Funções de Navegação
-function showSection(section, navButton) {
-    // Esconder todas as seções
-    mainSection.classList.add('hidden');
-    historySection.classList.add('hidden');
-    profileSection.classList.add('hidden');
-    suggestionsSection.classList.add('hidden');
-    pricesSection.classList.add('hidden');
-    
-    // Remover classe active de todos os botões
-    navMain.classList.remove('active');
-    navHistory.classList.remove('active');
-    navProfile.classList.remove('active');
-    navSuggestions.classList.remove('active');
-    navPrices.classList.remove('active');
-    
-    // Mostrar seção selecionada
-    section.classList.remove('hidden');
-    navButton.classList.add('active');
-}
+// Eventos - Perfil
+profileButton.addEventListener('click', () => {
+    // Navegar para a aba de perfil
+    document.getElementById('nav-profile').click();
+});
 
-function showAdminSection(section, navButton) {
-    // Esconder todas as seções
-    adminDashboard.classList.add('hidden');
-    adminUsers.classList.add('hidden');
-    adminRides.classList.add('hidden');
-    adminSuggestions.classList.add('hidden');
-    adminSettings.classList.add('hidden');
-    
-    // Remover classe active de todos os botões
-    adminNavDashboard.classList.remove('active');
-    adminNavUsers.classList.remove('active');
-    adminNavRides.classList.remove('active');
-    adminNavSuggestions.classList.remove('active');
-    adminNavSettings.classList.remove('active');
-    
-    // Mostrar seção selecionada
-    section.classList.remove('hidden');
-    navButton.classList.add('active');
-}
-
-// Funções do Passageiro
-async function handleGetCurrentLocation() {
-    if (!navigator.geolocation) {
-        showToast('Geolocalização não é suportada pelo seu navegador.', 'error');
-        return;
-    }
-    
-    locationStatus.textContent = 'Obtendo localização...';
-    locationStatus.classList.remove('hidden');
-    
-    try {
-        const position = await getCurrentPosition();
-        const { latitude, longitude } = position.coords;
-        
-        // Usar o serviço de geocodificação para obter o endereço
-        const address = await reverseGeocode(latitude, longitude);
-        pickupLocation.value = address;
-        
-        locationStatus.classList.add('hidden');
-    } catch (error) {
-        console.error('Erro ao obter localização:', error);
-        locationStatus.textContent = 'Erro ao obter localização. Tente novamente.';
-        setTimeout(() => {
-            locationStatus.classList.add('hidden');
-        }, 3000);
-    }
-}
-
-async function handleRequestRide() {
-    const pickup = pickupLocation.value;
-    const dest = destination.value;
-    
-    if (!pickup || !dest) {
-        showToast('Por favor, preencha os locais de partida e destino.', 'error');
-        return;
-    }
-    
-    try {
-        // Verificar se já existe uma corrida ativa para este passageiro
-        const activeRideQuery = await db.collection('rides')
-            .where('passengerId', '==', currentUser.uid)
-            .where('status', 'in', ['pending', 'accepted'])
-            .get();
-        
-        if (!activeRideQuery.empty) {
-            // Verificar se a corrida é antiga (mais de 1 hora)
-            const ride = activeRideQuery.docs[0].data();
-            const rideTime = ride.createdAt.toDate();
-            const now = new Date();
-            const diffInHours = (now - rideTime) / (1000 * 60 * 60);
-            
-            if (diffInHours < 1) {
-                showToast('Você já tem uma corrida em andamento.', 'error');
-                return;
-            } else {
-                // Cancelar corrida antiga automaticamente
-                await db.collection('rides').doc(activeRideQuery.docs[0].id).update({
-                    status: 'cancelled',
-                    cancelReason: 'Cancelamento automático por timeout',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-        
-        // Obter dados do usuário
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const userData = userDoc.data();
-        
-        // Criar nova corrida
-        const rideData = {
-            passengerId: currentUser.uid,
-            passengerName: userData.name,
-            passengerPhone: userData.phone,
-            passengerPictureUrl: userData.profilePicture || null,
-            pickup: pickup,
-            destination: dest,
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            timeout: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)) // 5 minutos
-        };
-        
-        // Adicionar coordenadas se disponíveis
-        if (userData.lastLocation) {
-            rideData.passengerLocation = userData.lastLocation;
-        }
-        
-        const rideRef = await db.collection('rides').add(rideData);
-        
-        showToast('Corrida solicitada com sucesso!', 'success');
-        
-        // Atualizar UI
-        rideStatus.classList.remove('hidden');
-        statusMessage.textContent = 'Procurando mototaxistas próximos...';
-        
-        // Iniciar monitoramento da corrida
-        startRideStatusMonitoring(rideRef.id);
-    } catch (error) {
-        console.error('Erro ao solicitar corrida:', error);
-        showToast('Erro ao solicitar corrida: ' + error.message, 'error');
-    }
-}
-
-async function checkActiveRide() {
-    try {
-        const activeRideQuery = await db.collection('rides')
-            .where('passengerId', '==', currentUser.uid)
-            .where('status', 'in', ['pending', 'accepted'])
-            .orderBy('createdAt', 'desc')
-            .limit(1)
-            .get();
-        
-        if (!activeRideQuery.empty) {
-            const rideDoc = activeRideQuery.docs[0];
-            const rideData = rideDoc.data();
-            
-            // Verificar se a corrida é antiga (mais de 1 hora)
-            const rideTime = rideData.createdAt.toDate();
-            const now = new Date();
-            const diffInHours = (now - rideTime) / (1000 * 60 * 60);
-            
-            if (diffInHours > 1) {
-                // Cancelar corrida antiga automaticamente
-                await db.collection('rides').doc(rideDoc.id).update({
-                    status: 'cancelled',
-                    cancelReason: 'Cancelamento automático por timeout',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                return;
-            }
-            
-            // Atualizar UI
-            rideStatus.classList.remove('hidden');
-            
-            if (rideData.status === 'pending') {
-                statusMessage.textContent = 'Procurando mototaxistas próximos...';
-            } else if (rideData.status === 'accepted') {
-                statusMessage.textContent = `Corrida aceita por ${rideData.driverName}. A caminho do local de partida.`;
-                
-                // Mostrar contato do mototaxista
-                if (rideData.driverPhone) {
-                    whatsappContact.innerHTML = `
-                        <a href="https://wa.me/55${rideData.driverPhone.replace(/\D/g, '')}" class="whatsapp-button" target="_blank">
-                            <img src="icons/whatsapp.png" alt="WhatsApp">
-                            Contatar Mototaxista
-                        </a>
-                    `;
-                    whatsappContact.classList.remove('hidden');
-                }
-            }
-            
-            // Iniciar monitoramento da corrida
-            startRideStatusMonitoring(rideDoc.id);
-        }
-    } catch (error) {
-        console.error('Erro ao verificar corridas ativas:', error);
-        showToast('Erro ao verificar status da corrida. Tente novamente.', 'error');
-    }
-}
-
-function startRideStatusMonitoring(rideId) {
-    // Parar monitoramento anterior se existir
-    if (window.rideStatusListener) {
-        window.rideStatusListener();
-        window.rideStatusListener = null;
-    }
-    
-    // Verificar se o ID da corrida é válido
-    if (!rideId) {
-        console.error('ID de corrida inválido para monitoramento');
-        statusMessage.textContent = 'Erro ao monitorar corrida. Tente novamente.';
-        return;
-    }
-    
-    // Verificar se o usuário está autenticado
-    if (!currentUser || !currentUser.uid) {
-        console.error('Usuário não autenticado ao iniciar monitoramento de corrida');
-        statusMessage.textContent = 'Erro ao monitorar corrida. Faça login novamente.';
-        return;
-    }
-    
-    try {
-        // Iniciar novo monitoramento com tratamento de erro aprimorado
-        window.rideStatusListener = db.collection('rides').doc(rideId)
-            .onSnapshot(
-                (doc) => {
-                    if (!doc || !doc.exists) {
-                        console.error('Documento da corrida não encontrado');
-                        statusMessage.textContent = 'Erro ao monitorar corrida. Tente novamente.';
-                        
-                        // Limpar monitoramento após alguns segundos
-                        setTimeout(() => {
-                            rideStatus.classList.add('hidden');
-                            if (window.rideStatusListener) {
-                                window.rideStatusListener();
-                                window.rideStatusListener = null;
-                            }
-                        }, 5000);
-                        return;
-                    }
-                    
-                    const rideData = doc.data() || {};
-                    
-                    // Atualizar UI baseado no status
-                    if (rideData.status === 'pending') {
-                        statusMessage.textContent = 'Procurando mototaxistas próximos...';
-                        whatsappContact.classList.add('hidden');
-                    } else if (rideData.status === 'accepted') {
-                        statusMessage.textContent = `Corrida aceita por ${rideData.driverName || 'Mototaxista'}. A caminho do local de partida.`;
-                        
-                        // Mostrar contato do mototaxista
-                        if (rideData.driverPhone) {
-                            whatsappContact.innerHTML = `
-                                <a href="https://wa.me/55${rideData.driverPhone.replace(/\D/g, '')}" class="whatsapp-button" target="_blank">
-                                    <img src="icons/whatsapp.png" alt="WhatsApp">
-                                    Contatar Mototaxista
-                                </a>
-                            `;
-                            whatsappContact.classList.remove('hidden');
-                        } else {
-                            whatsappContact.classList.add('hidden');
-                        }
-                    } else if (rideData.status === 'completed') {
-                        statusMessage.textContent = 'Corrida finalizada.';
-                        whatsappContact.classList.add('hidden');
-                        
-                        // Mostrar modal de avaliação
-                        if (rideData.driverId) {
-                            showRatingModal(rideId, rideData.driverId, 'driver');
-                        }
-                        
-                        // Limpar monitoramento após alguns segundos
-                        setTimeout(() => {
-                            rideStatus.classList.add('hidden');
-                            if (window.rideStatusListener) {
-                                window.rideStatusListener();
-                                window.rideStatusListener = null;
-                            }
-                        }, 5000);
-                    } else if (rideData.status === 'cancelled') {
-                        statusMessage.textContent = 'Corrida cancelada.';
-                        whatsappContact.classList.add('hidden');
-                        
-                        // Limpar monitoramento após alguns segundos
-                        setTimeout(() => {
-                            rideStatus.classList.add('hidden');
-                            if (window.rideStatusListener) {
-                                window.rideStatusListener();
-                                window.rideStatusListener = null;
-                            }
-                        }, 5000);
-                    }
-                },
-                (error) => {
-                    console.error('Erro ao monitorar corrida:', error);
-                    statusMessage.textContent = 'Erro ao monitorar corrida. Tente novamente.';
-                    showToast('Falha ao monitorar status da corrida. Verifique sua conexão.', 'error');
-                    
-                    // Tentar reiniciar o monitoramento após 10 segundos em caso de erro
-                    setTimeout(() => {
-                        if (window.rideStatusListener) {
-                            startRideStatusMonitoring(rideId);
-                        }
-                    }, 10000);
-                }
-            );
-    } catch (error) {
-        console.error('Erro ao iniciar monitoramento de corrida:', error);
-        statusMessage.textContent = 'Erro ao monitorar corrida. Tente novamente.';
-        showToast('Falha ao iniciar monitoramento da corrida. Verifique sua conexão.', 'error');
-    }
-}
-
-function showCancelFeedback() {
-    cancelFeedbackContainer.classList.remove('hidden');
-    
-    // Resetar seleção
-    document.querySelectorAll('input[name="cancel-reason"]').forEach(radio => {
-        radio.checked = false;
-    });
-    otherReasonTextarea.value = '';
-    otherReasonTextarea.classList.add('hidden');
-}
-
-async function handleCancelRide() {
-    const selectedReason = document.querySelector('input[name="cancel-reason"]:checked');
-    
-    if (!selectedReason) {
-        showToast('Por favor, selecione um motivo para o cancelamento.', 'error');
-        return;
-    }
-    
-    let cancelReason = selectedReason.value;
-    
-    if (cancelReason === 'other' && !otherReasonTextarea.value.trim()) {
-        showToast('Por favor, descreva o motivo do cancelamento.', 'error');
-        return;
-    }
-    
-    if (cancelReason === 'other') {
-        cancelReason = otherReasonTextarea.value.trim();
-    }
-    
-    try {
-        // Buscar corrida ativa
-        const activeRideQuery = await db.collection('rides')
-            .where('passengerId', '==', currentUser.uid)
-            .where('status', 'in', ['pending', 'accepted'])
-            .get();
-        
-        if (activeRideQuery.empty) {
-            showToast('Nenhuma corrida ativa encontrada.', 'error');
-            cancelFeedbackContainer.classList.add('hidden');
-            return;
-        }
-        
-        // Cancelar corrida
-        await db.collection('rides').doc(activeRideQuery.docs[0].id).update({
-            status: 'cancelled',
-            cancelReason: cancelReason,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Corrida cancelada com sucesso.', 'success');
-        cancelFeedbackContainer.classList.add('hidden');
-        
-        // Atualizar UI
-        statusMessage.textContent = 'Corrida cancelada.';
-        whatsappContact.classList.add('hidden');
-        
-        // Limpar monitoramento após alguns segundos
-        setTimeout(() => {
-            rideStatus.classList.add('hidden');
-            if (window.rideStatusListener) {
-                window.rideStatusListener();
-                window.rideStatusListener = null;
-            }
-        }, 5000);
-    } catch (error) {
-        console.error('Erro ao cancelar corrida:', error);
-        showToast('Erro ao cancelar corrida. Tente novamente.', 'error');
-    }
-}
-
-// Funções do Mototaxista
-async function loadDriverInfo() {
-    try {
-        // Carregar status atual
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const userData = userDoc.data();
-        
-        driverStatus.value = userData.status || 'unavailable';
-        
-        // Carregar avaliação média
-        const ratings = await db.collection('ratings')
-            .where('targetId', '==', currentUser.uid)
-            .get();
-        
-        if (!ratings.empty) {
-            let totalRating = 0;
-            ratings.forEach(doc => {
-                totalRating += doc.data().rating;
-            });
-            
-            const averageRating = (totalRating / ratings.size).toFixed(1);
-            const ratingStars = document.querySelector('.rating-stars');
-            const ratingValue = document.querySelector('.rating-value');
-            const ratingCount = document.querySelector('.rating-count');
-            
-            ratingStars.innerHTML = getStarsHTML(averageRating);
-            ratingValue.textContent = averageRating;
-            ratingCount.textContent = `(${ratings.size} avaliações)`;
-        }
-        
-        // Verificar se há uma corrida em andamento
-        const activeRideQuery = await db.collection('rides')
-            .where('driverId', '==', currentUser.uid)
-            .where('status', '==', 'accepted')
-            .get();
-        
-        if (!activeRideQuery.empty) {
-            const rideDoc = activeRideQuery.docs[0];
-            const rideData = rideDoc.data();
-            
-            // Atualizar UI
-            currentRide = {
-                id: rideDoc.id,
-                ...rideData
-            };
-            
-            showCurrentRide(currentRide);
-        }
-    } catch (error) {
-        console.error('Erro ao carregar informações do mototaxista:', error);
-        showToast('Erro ao carregar informações. Tente novamente.', 'error');
-    }
-}
-
-async function handleDriverStatusChange() {
-    const newStatus = driverStatus.value;
-    
-    try {
-        await db.collection('users').doc(currentUser.uid).update({
-            status: newStatus,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast(`Status atualizado para ${newStatus === 'available' ? 'Disponível' : 'Indisponível'}.`, 'success');
-        
-        // Se ficar indisponível, parar de ouvir por novas corridas
-        if (newStatus === 'unavailable') {
-            if (window.availableRidesListener) {
-                window.availableRidesListener();
-                window.availableRidesListener = null;
-                
-                // Limpar lista de corridas
-                ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
-            }
-        } else {
-            // Se ficar disponível, começar a ouvir por novas corridas
-            startRidesListener();
-        }
-    } catch (error) {
-        console.error('Erro ao atualizar status:', error);
-        showToast('Erro ao atualizar status. Tente novamente.', 'error');
-        
-        // Reverter UI
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const userData = userDoc.data();
-        driverStatus.value = userData.status || 'unavailable';
-    }
-}
-
-function startRidesListener() {
-    // Parar listener anterior se existir
-    if (window.availableRidesListener) {
-        window.availableRidesListener();
-        window.availableRidesListener = null;
-    }
-    
-    // Verificar se o mototaxista está disponível
-    if (driverStatus.value !== 'available') {
-        ridesList.innerHTML = '<p class="empty-message">Você está indisponível. Mude seu status para receber corridas.</p>';
-        return;
-    }
-    
-    // Verificar se o usuário está autenticado
-    if (!currentUser || !currentUser.uid) {
-        console.error('Usuário não autenticado ao iniciar listener de corridas');
-        ridesList.innerHTML = '<p class="error-message">Erro ao monitorar corridas. Faça login novamente.</p>';
-        return;
-    }
-    
-    // Mostrar mensagem de carregamento
-    ridesList.innerHTML = '<p class="loading-message">Carregando corridas disponíveis...</p>';
-    
-    // Iniciar novo listener com tratamento de erro aprimorado
-    try {
-        window.availableRidesListener = db.collection('rides')
-            .where('status', '==', 'pending')
-            .orderBy('createdAt', 'desc')
-            .onSnapshot(
-                (snapshot) => {
-                    // Limpar lista
-                    ridesList.innerHTML = '';
-                    
-                    if (!snapshot || snapshot.empty) {
-                        ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
-                        return;
-                    }
-                    
-                    let ridesAdded = 0;
-                    
-                    // Adicionar cada corrida à lista
-                    snapshot.forEach(doc => {
-                        if (!doc.exists) return;
-                        
-                        const ride = doc.data() || {};
-                        
-                        // Verificar se a corrida tem os dados mínimos necessários
-                        if (!ride.pickup || !ride.destination) return;
-                        
-                        const rideTime = ride.createdAt ? ride.createdAt.toDate() : new Date();
-                        const formattedTime = formatDate(rideTime);
-                        
-                        const rideElement = document.createElement('div');
-                        rideElement.className = 'ride-item';
-                        rideElement.innerHTML = `
-                            <div class="ride-header">
-                                <h4>${ride.passengerName || 'Passageiro'}</h4>
-                                <span class="ride-time">${formattedTime}</span>
-                            </div>
-                            <div class="ride-locations">
-                                <p><strong>Partida:</strong> ${ride.pickup}</p>
-                                <p><strong>Destino:</strong> ${ride.destination}</p>
-                            </div>
-                            <div class="ride-buttons">
-                                <button class="primary-button accept-ride-button" data-ride-id="${doc.id}">Aceitar Corrida</button>
-                            </div>
-                        `;
-                        
-                        ridesList.appendChild(rideElement);
-                        ridesAdded++;
-                        
-                        // Adicionar event listener para o botão de aceitar
-                        rideElement.querySelector('.accept-ride-button').addEventListener('click', () => {
-                            handleAcceptRide(doc.id);
-                        });
-                    });
-                    
-                    // Se não adicionou nenhum elemento (pode acontecer se todos os documentos forem inválidos)
-                    if (ridesAdded === 0) {
-                        ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
-                    }
-                },
-                (error) => {
-                    console.error('Erro ao monitorar corridas:', error);
-                    ridesList.innerHTML = '<p class="error-message">Erro ao monitorar corridas. Tente novamente.</p>';
-                    showToast('Falha ao monitorar corridas disponíveis. Verifique sua conexão.', 'error');
-                    
-                    // Tentar reiniciar o listener após 10 segundos em caso de erro
-                    setTimeout(() => {
-                        if (driverStatus.value === 'available') {
-                            startRidesListener();
-                        }
-                    }, 10000);
-                }
-            );
-    } catch (error) {
-        console.error('Erro ao iniciar listener de corridas:', error);
-        ridesList.innerHTML = '<p class="error-message">Erro ao monitorar corridas. Tente novamente.</p>';
-        showToast('Falha ao iniciar monitoramento de corridas. Verifique sua conexão.', 'error');
-    }
-}
-}
-
-async function handleAcceptRide(rideId) {
-    try {
-        // Verificar se a corrida ainda está disponível
-        const rideDoc = await db.collection('rides').doc(rideId).get();
-        
-        if (!rideDoc.exists) {
-            showToast('Esta corrida não existe mais.', 'error');
-            return;
-        }
-        
-        const rideData = rideDoc.data();
-        
-        if (rideData.status !== 'pending') {
-            showToast('Esta corrida já foi aceita por outro mototaxista.', 'error');
-            return;
-        }
-        
-        // Obter dados do mototaxista
-        const driverDoc = await db.collection('users').doc(currentUser.uid).get();
-        const driverData = driverDoc.data();
-        
-        // Aceitar corrida
-        await db.collection('rides').doc(rideId).update({
-            status: 'accepted',
-            driverId: currentUser.uid,
-            driverName: driverData.name,
-            driverPhone: driverData.phone,
-            driverPictureUrl: driverData.profilePicture || null,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Corrida aceita com sucesso!', 'success');
-        
-        // Atualizar UI
-        currentRide = {
-            id: rideId,
-            ...rideData,
-            driverId: currentUser.uid,
-            driverName: driverData.name,
-            driverPhone: driverData.phone,
-            driverPictureUrl: driverData.profilePicture || null
-        };
-        
-        showCurrentRide(currentRide);
-        
-        // Parar de ouvir por novas corridas
-        if (window.availableRidesListener) {
-            window.availableRidesListener();
-            window.availableRidesListener = null;
-        }
-    } catch (error) {
-        console.error('Erro ao aceitar corrida:', error);
-        showToast('Erro ao aceitar corrida. Tente novamente.', 'error');
-    }
-}
-
-function showCurrentRide(ride) {
-    // Atualizar UI
-    passengerName.textContent = ride.passengerName || 'Passageiro';
-    ridePickup.textContent = ride.pickup;
-    rideDestination.textContent = ride.destination;
-    
-    // Mostrar contato do passageiro
-    if (ride.passengerPhone) {
-        whatsappContactDriver.innerHTML = `
-            <a href="https://wa.me/55${ride.passengerPhone.replace(/\D/g, '')}" class="whatsapp-button" target="_blank">
-                <img src="icons/whatsapp.png" alt="WhatsApp">
-                Contatar Passageiro
-            </a>
-        `;
-        whatsappContactDriver.classList.remove('hidden');
-    }
-    
-    // Mostrar seção de corrida atual
-    currentRideElement.classList.remove('hidden');
-    ridesList.innerHTML = '<p class="empty-message">Você tem uma corrida em andamento.</p>';
-}
-
-async function handleCompleteRide() {
-    if (!currentRide) {
-        showToast('Nenhuma corrida em andamento.', 'error');
-        return;
-    }
-    
-    try {
-        // Finalizar corrida
-        await db.collection('rides').doc(currentRide.id).update({
-            status: 'completed',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Corrida finalizada com sucesso!', 'success');
-        
-        // Mostrar modal de avaliação
-        showRatingModal(currentRide.id, currentRide.passengerId, 'passenger');
-        
-        // Limpar UI
-        currentRideElement.classList.add('hidden');
-        whatsappContactDriver.classList.add('hidden');
-        currentRide = null;
-        
-        // Voltar a ouvir por novas corridas se estiver disponível
-        if (driverStatus.value === 'available') {
-            startRidesListener();
-        }
-    } catch (error) {
-        console.error('Erro ao finalizar corrida:', error);
-        showToast('Erro ao finalizar corrida. Tente novamente.', 'error');
-    }
-}
-
-// Funções de Histórico
-async function loadRideHistory() {
-    try {
-        // Verificar se o usuário está autenticado
-        if (!currentUser || !currentUser.uid) {
-            console.error('Usuário não autenticado ao carregar histórico');
-            rideHistory.innerHTML = '<p class="error-message">Erro ao carregar histórico. Faça login novamente.</p>';
-            return;
-        }
-        
-        // Verificar se o tipo de usuário está definido
-        if (!userType) {
-            console.error('Tipo de usuário não definido ao carregar histórico');
-            rideHistory.innerHTML = '<p class="error-message">Erro ao carregar histórico. Atualize a página.</p>';
-            return;
-        }
-        
-        rideHistory.innerHTML = '<p class="loading-message">Carregando histórico...</p>';
-        
-        // Buscar corridas do usuário com tratamento de erro aprimorado
-        const ridesQuery = userType === 'driver'
-            ? db.collection('rides').where('driverId', '==', currentUser.uid)
-            : db.collection('rides').where('passengerId', '==', currentUser.uid);
-        
-        const ridesSnapshot = await ridesQuery
-            .where('status', 'in', ['completed', 'cancelled'])
-            .orderBy('updatedAt', 'desc')
-            .limit(20)
-            .get()
-            .catch(error => {
-                console.error('Erro na query de histórico:', error);
-                throw new Error('Falha ao consultar histórico no banco de dados');
-            });
-        
-        if (!ridesSnapshot || ridesSnapshot.empty) {
-            rideHistory.innerHTML = '<p class="empty-message">Nenhuma corrida encontrada no histórico.</p>';
-            return;
-        }
-        
-        // Limpar e adicionar cada corrida ao histórico
-        rideHistory.innerHTML = '';
-        
-        ridesSnapshot.forEach(doc => {
-            if (!doc.exists) return;
-            
-            const ride = doc.data() || {};
-            const rideTime = ride.updatedAt ? ride.updatedAt.toDate() : new Date();
-            const formattedTime = formatDate(rideTime);
-            
-            const statusClass = ride.status === 'completed' ? 'status-completed' : 'status-cancelled';
-            const statusText = ride.status === 'completed' ? 'Concluída' : 'Cancelada';
-            
-            const historyElement = document.createElement('div');
-            historyElement.className = 'history-item';
-            historyElement.innerHTML = `
-                <div class="history-header">
-                    <h4>${userType === 'driver' ? (ride.passengerName || 'Passageiro') : (ride.driverName || 'Mototaxista')}</h4>
-                    <div>
-                        <span class="history-date">${formattedTime}</span>
-                        <span class="history-status ${statusClass}">${statusText}</span>
-                    </div>
-                </div>
-                <div class="history-details">
-                    <p><strong>Partida:</strong> ${ride.pickup || 'Não informado'}</p>
-                    <p><strong>Destino:</strong> ${ride.destination || 'Não informado'}</p>
-                    ${ride.status === 'cancelled' && ride.cancelReason ? `<p><strong>Motivo do cancelamento:</strong> ${ride.cancelReason}</p>` : ''}
-                </div>
-            `;
-            
-            rideHistory.appendChild(historyElement);
-        });
-        
-        // Se não adicionou nenhum elemento (pode acontecer se todos os documentos forem inválidos)
-        if (rideHistory.children.length === 0) {
-            rideHistory.innerHTML = '<p class="empty-message">Nenhuma corrida encontrada no histórico.</p>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar histórico:', error);
-        rideHistory.innerHTML = '<p class="error-message">Erro ao carregar histórico. Tente novamente.</p>';
-        showToast('Não foi possível carregar seu histórico. Verifique sua conexão.', 'error');
-    }
-}
-
-async function loadUserRatings() {
-    try {
-        // Verificar se o usuário está autenticado
-        if (!currentUser || !currentUser.uid) {
-            console.error('Usuário não autenticado ao carregar avaliações');
-            userRatingsHistory.innerHTML = '<p class="error-message">Erro ao carregar avaliações. Faça login novamente.</p>';
-            return;
-        }
-        
-        userRatingsHistory.innerHTML = '<p class="loading-message">Carregando avaliações...</p>';
-        
-        // Buscar avaliações do usuário com tratamento de erro aprimorado
-        const ratingsSnapshot = await db.collection('ratings')
-            .where('targetId', '==', currentUser.uid)
-            .orderBy('createdAt', 'desc')
-            .limit(20)
-            .get()
-            .catch(error => {
-                console.error('Erro na query de avaliações:', error);
-                throw new Error('Falha ao consultar avaliações no banco de dados');
-            });
-        
-        if (!ratingsSnapshot || ratingsSnapshot.empty) {
-            userRatingsHistory.innerHTML = '<p class="empty-message">Nenhuma avaliação encontrada.</p>';
-            return;
-        }
-        
-        // Limpar e adicionar cada avaliação ao histórico
-        userRatingsHistory.innerHTML = '';
-        
-        ratingsSnapshot.forEach(doc => {
-            if (!doc.exists) return;
-            
-            const rating = doc.data() || {};
-            const ratingTime = rating.createdAt ? rating.createdAt.toDate() : new Date();
-            const formattedTime = formatDate(ratingTime);
-            
-            const ratingElement = document.createElement('div');
-            ratingElement.className = 'rating-item';
-            ratingElement.innerHTML = `
-                <div class="rating-header">
-                    <span class="rating-author">${rating.authorName || 'Usuário'}</span>
-                    <span class="rating-date">${formattedTime}</span>
-                </div>
-                <div class="rating-body">
-                    <div class="rating-stars">${getStarsHTML(rating.rating || 0)}</div>
-                    ${rating.comment ? `<p class="rating-comment">"${rating.comment}"</p>` : ''}
-                </div>
-            `;
-            
-            userRatingsHistory.appendChild(ratingElement);
-        });
-        
-        // Se não adicionou nenhum elemento (pode acontecer se todos os documentos forem inválidos)
-        if (userRatingsHistory.children.length === 0) {
-            userRatingsHistory.innerHTML = '<p class="empty-message">Nenhuma avaliação encontrada.</p>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar avaliações:', error);
-        userRatingsHistory.innerHTML = '<p class="error-message">Erro ao carregar avaliações. Tente novamente.</p>';
-        showToast('Não foi possível carregar suas avaliações. Verifique sua conexão.', 'error');
-    }
-}
-
-// Funções de Perfil
-function handleProfilePictureChange() {
-    const file = profilePictureInput.files[0];
-    
+profilePictureInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
     if (file) {
-        // Verificar tipo de arquivo
-        if (!file.type.match('image.*')) {
-            showToast('Por favor, selecione uma imagem.', 'error');
-            return;
-        }
-        
-        // Verificar tamanho do arquivo (máximo 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            showToast('A imagem deve ter no máximo 5MB.', 'error');
-            return;
-        }
-        
-        // Mostrar preview
         const reader = new FileReader();
         reader.onload = (e) => {
             profilePicturePreview.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
-}
+});
 
-async function handleSaveProfile() {
+saveProfileButton.addEventListener('click', () => {
+    if (!currentUser) return;
+    
+    const name = profileNameInput.value;
+    const phone = profilePhoneInput.value;
+    
+    if (!name || !phone) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    // Atualizar dados no Firestore
+    const userRef = db.collection('users').doc(currentUser.uid);
+    
+    // Verificar se há uma nova foto
     const file = profilePictureInput.files[0];
     
-    if (!file) {
-        showToast('Por favor, selecione uma imagem.', 'error');
-        return;
-    }
-    
-    try {
-        // Upload da imagem para o Storage
+    if (file) {
+        // Upload da nova foto
         const storageRef = storage.ref();
-        const fileRef = storageRef.child(`profile_pictures/${currentUser.uid}_${Date.now()}`);
+        const profilePicRef = storageRef.child(`profile_pictures/${currentUser.uid}`);
         
-        await fileRef.put(file);
-        const downloadURL = await fileRef.getDownloadURL();
-        
-        // Atualizar perfil do usuário
-        await db.collection('users').doc(currentUser.uid).update({
-            profilePicture: downloadURL,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Atualizar UI
-        userProfilePicture.src = downloadURL;
-        
-        showToast('Foto de perfil atualizada com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao salvar perfil:', error);
-        showToast('Erro ao salvar perfil. Tente novamente.', 'error');
-    }
-}
-
-// Funções de Sugestões
-async function handleSubmitSuggestion() {
-    const title = suggestionTitle.value;
-    const text = suggestionText.value;
-    const type = suggestionType.value;
-    
-    if (!title || !text) {
-        showToast('Por favor, preencha todos os campos.', 'error');
-        return;
-    }
-    
-    try {
-        // Obter dados do usuário
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const userData = userDoc.data();
-        
-        // Criar sugestão
-        await db.collection('suggestions').add({
-            userId: currentUser.uid,
-            userName: userData.name,
-            userType: userData.type,
-            title: title,
-            text: text,
-            type: type,
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Sugestão enviada com sucesso!', 'success');
-        
-        // Limpar formulário
-        suggestionTitle.value = '';
-        suggestionText.value = '';
-        suggestionType.value = 'improvement';
-        
-        // Recarregar sugestões
-        loadUserSuggestions();
-    } catch (error) {
-        console.error('Erro ao enviar sugestão:', error);
-        showToast('Erro ao enviar sugestão. Tente novamente.', 'error');
-    }
-}
-
-async function loadUserSuggestions() {
-    try {
-        // Verificar se o usuário está autenticado
-        if (!currentUser || !currentUser.uid) {
-            console.error('Usuário não autenticado ao carregar sugestões');
-            suggestionsList.innerHTML = '<p class="error-message">Erro ao carregar suas sugestões. Faça login novamente.</p>';
-            return;
-        }
-        
-        suggestionsList.innerHTML = '<p class="loading-message">Carregando sugestões...</p>';
-        
-        // Buscar sugestões do usuário com tratamento de erro aprimorado
-        const suggestionsSnapshot = await db.collection('suggestions')
-            .where('userId', '==', currentUser.uid)
-            .orderBy('createdAt', 'desc')
-            .get()
+        profilePicRef.put(file)
+            .then(snapshot => snapshot.ref.getDownloadURL())
+            .then(downloadURL => {
+                return userRef.update({
+                    name: name,
+                    phone: phone,
+                    profilePictureUrl: downloadURL,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            })
+            .then(() => {
+                alert('Perfil atualizado com sucesso!');
+                // Atualizar interface
+                userNameElement.textContent = name;
+                userProfilePicture.src = profilePicturePreview.src;
+                // Voltar para a tela principal
+                document.getElementById('nav-main').click();
+            })
             .catch(error => {
-                console.error('Erro na query de sugestões:', error);
-                throw new Error('Falha ao consultar sugestões no banco de dados');
+                console.error('Erro ao atualizar perfil:', error);
+                alert('Erro ao atualizar perfil: ' + error.message);
             });
-        
-        if (!suggestionsSnapshot || suggestionsSnapshot.empty) {
-            suggestionsList.innerHTML = '<p class="empty-message">Nenhuma sugestão encontrada.</p>';
-            return;
-        }
-        
-        // Limpar e adicionar cada sugestão à lista
-        suggestionsList.innerHTML = '';
-        
-        suggestionsSnapshot.forEach(doc => {
-            if (!doc.exists) return;
-            
-            const suggestion = doc.data() || {};
-            const suggestionTime = suggestion.createdAt ? suggestion.createdAt.toDate() : new Date();
-            const formattedTime = formatDate(suggestionTime);
-            
-            let statusClass = '';
-            let statusText = '';
-            
-            switch (suggestion.status) {
-                case 'pending':
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-                    break;
-                case 'approved':
-                    statusClass = 'status-approved';
-                    statusText = 'Aprovada';
-                    break;
-                case 'rejected':
-                    statusClass = 'status-rejected';
-                    statusText = 'Rejeitada';
-                    break;
-                case 'implemented':
-                    statusClass = 'status-implemented';
-                    statusText = 'Implementada';
-                    break;
-                default:
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-            }
-            
-            let typeText = '';
-            
-            switch (suggestion.type) {
-                case 'improvement':
-                    typeText = 'Melhoria';
-                    break;
-                case 'bug':
-                    typeText = 'Problema';
-                    break;
-                case 'feature':
-                    typeText = 'Nova Funcionalidade';
-                    break;
-                case 'other':
-                    typeText = 'Outro';
-                    break;
-                default:
-                    typeText = 'Outro';
-            }
-            
-            const suggestionElement = document.createElement('div');
-            suggestionElement.className = 'suggestion-item';
-            suggestionElement.innerHTML = `
-                <div class="suggestion-header">
-                    <h4>${suggestion.title || 'Sem título'}</h4>
-                    <span class="suggestion-date">${formattedTime}</span>
-                </div>
-                <p class="suggestion-text">${suggestion.text || 'Sem descrição'}</p>
-                <div class="suggestion-footer">
-                    <span class="suggestion-type">${typeText}</span>
-                    <span class="suggestion-status ${statusClass}">${statusText}</span>
-                </div>
-            `;
-            
-            suggestionsList.appendChild(suggestionElement);
+    } else {
+        // Atualizar apenas os dados sem a foto
+        userRef.update({
+            name: name,
+            phone: phone,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+            alert('Perfil atualizado com sucesso!');
+            // Atualizar interface
+            userNameElement.textContent = name;
+            // Voltar para a tela principal
+            document.getElementById('nav-main').click();
+        })
+        .catch(error => {
+            console.error('Erro ao atualizar perfil:', error);
+            alert('Erro ao atualizar perfil: ' + error.message);
         });
-        
-        // Se não adicionou nenhum elemento (pode acontecer se todos os documentos forem inválidos)
-        if (suggestionsList.children.length === 0) {
-            suggestionsList.innerHTML = '<p class="empty-message">Nenhuma sugestão encontrada.</p>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar sugestões:', error);
-        suggestionsList.innerHTML = '<p class="error-message">Erro ao carregar suas sugestões. Tente novamente.</p>';
-        showToast('Não foi possível carregar suas sugestões. Verifique sua conexão.', 'error');
     }
-}
+});
 
-// Funções de Preços
-async function loadPriceTable() {
-    try {
-        // Buscar URL da tabela de preços
-        const settingsDoc = await db.collection('settings').doc('priceTable').get();
-        
-        if (settingsDoc.exists && settingsDoc.data().imageUrl) {
-            priceTableImage.src = settingsDoc.data().imageUrl;
-            priceTableImage.alt = 'Tabela de preços';
-        } else {
-            priceTableImage.src = '';
-            priceTableImage.alt = 'Tabela de preços não disponível';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar tabela de preços:', error);
-        priceTableImage.src = '';
-        priceTableImage.alt = 'Erro ao carregar tabela de preços';
-    }
-}
+// Eventos - Interface do Passageiro
+useCurrentLocationButton.addEventListener('click', () => {
+    locationStatus.textContent = 'Obtendo sua localização...';
+    locationStatus.classList.remove('hidden');
+    
+    geoService.getCurrentPosition()
+        .then(position => {
+            // Salvar a posição para uso posterior
+            window.currentPosition = position;
+            
+            return geoService.getAddressFromCoords(position.latitude, position.longitude);
+        })
+        .then(address => {
+            pickupLocationInput.value = address.fullAddress || `${address.street} ${address.number}, ${address.neighborhood}, ${address.city}`;
+            locationStatus.textContent = 'Localização obtida com sucesso!';
+            locationStatus.style.color = '#28a745';
+            
+            // Salvar localização no perfil do usuário
+            if (currentUser) {
+                db.collection('users').doc(currentUser.uid).update({
+                    location: {
+                        latitude: window.currentPosition.latitude,
+                        longitude: window.currentPosition.longitude,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }
+                });
+            }
+            
+            // Buscar mototaxistas próximos
+            return geoService.findNearbyDrivers(window.currentPosition);
+        })
+        .then(nearbyDrivers => {
+            displayNearbyDrivers(nearbyDrivers);
+        })
+        .catch(error => {
+            console.error('Erro ao obter localização:', error);
+            locationStatus.textContent = 'Erro ao obter localização: ' + error.message;
+            locationStatus.style.color = '#dc3545';
+        });
+});
 
-// Funções de Avaliação
-function showRatingModal(rideId, targetId, targetType) {
-    // Verificar se já existe um modal de avaliação
-    if (document.getElementById('rating-modal')) {
+requestRideButton.addEventListener('click', () => {
+    if (!currentUser) return;
+    
+    const pickup = pickupLocationInput.value;
+    const destination = destinationInput.value;
+    const serviceType = document.querySelector('input[name="service-type"]:checked').value;
+    
+    if (!pickup || !destination) {
+        alert('Por favor, preencha os locais de partida e destino.');
         return;
     }
     
-    // Criar modal
-    const modal = document.createElement('div');
-    modal.id = 'rating-modal';
-    modal.className = 'modal';
+    // Verificar se o usuário já tem uma corrida ativa
+    db.collection('rides')
+        .where('passengerId', '==', currentUser.uid)
+        .where('status', 'in', ['pending', 'accepted'])
+        .get()
+        .then(querySnapshot => {
+            if (!querySnapshot.empty) {
+                // Verificar se a corrida é antiga (mais de 45 minutos)
+                const ride = querySnapshot.docs[0].data();
+                const rideId = querySnapshot.docs[0].id;
+                const now = new Date();
+                const rideTime = ride.createdAt ? ride.createdAt.toDate() : new Date(0);
+                const timeDiff = (now - rideTime) / (1000 * 60); // diferença em minutos
+                
+                if (timeDiff > 45) {
+                    // Corrida antiga, cancelar automaticamente
+                    return db.collection('rides').doc(rideId).update({
+                        status: 'cancelled',
+                        cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        cancellationReason: 'Cancelamento automático por timeout (45 minutos)'
+                    }).then(() => {
+                        console.log('Corrida antiga cancelada automaticamente');
+                        return Promise.resolve(false); // Continuar com a nova solicitação
+                    });
+                } else {
+                    alert('Você já tem uma corrida ativa. Cancele-a antes de solicitar uma nova.');
+                    return Promise.resolve(true); // Impedir nova solicitação
+                }
+            } else {
+                return Promise.resolve(false); // Continuar com a solicitação
+            }
+        })
+        .then(hasActiveRide => {
+            if (hasActiveRide) return;
+            
+            // Obter dados do usuário para a solicitação
+            return db.collection('users').doc(currentUser.uid).get();
+        })
+        .then(doc => {
+            if (!doc) return; // Caso hasActiveRide seja true
+            
+            const userData = doc.data();
+            
+            // Criar nova solicitação de corrida
+            return db.collection('rides').add({
+                passengerId: currentUser.uid,
+                passengerName: userData.name || 'Passageiro',
+                passengerPhone: userData.phone || '',
+                passengerPictureUrl: userData.profilePictureUrl || '',
+                pickup: pickup,
+                destination: destination,
+                serviceType: serviceType,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                timeoutAt: new Date(Date.now() + 45 * 60 * 1000) // 45 minutos a partir de agora
+            });
+        })
+        .then(docRef => {
+            if (!docRef) return; // Caso hasActiveRide seja true
+            
+            console.log('Corrida solicitada com sucesso!');
+            
+            // Atualizar interface
+            rideStatusContainer.classList.remove('hidden');
+            statusMessage.textContent = 'Procurando mototaxistas próximos...';
+            cancelRideButton.dataset.rideId = docRef.id;
+            
+            // Iniciar monitoramento da corrida
+            startRideMonitoring(docRef.id);
+        })
+        .catch(error => {
+            console.error('Erro ao solicitar corrida:', error);
+            alert('Erro ao solicitar corrida: ' + error.message);
+        });
+});
+
+cancelRideButton.addEventListener('click', () => {
+    const rideId = cancelRideButton.dataset.rideId;
     
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeRatingModal()">&times;</span>
-            <h2>Avalie o ${targetType === 'driver' ? 'Mototaxista' : 'Passageiro'}</h2>
-            <div class="rating-stars-input">
-                <span class="star" data-rating="1">★</span>
-                <span class="star" data-rating="2">★</span>
-                <span class="star" data-rating="3">★</span>
-                <span class="star" data-rating="4">★</span>
-                <span class="star" data-rating="5">★</span>
+    if (!rideId) return;
+    
+    db.collection('rides').doc(rideId).update({
+        status: 'cancelled',
+        cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+        cancellationReason: 'Cancelado pelo passageiro'
+    })
+    .then(() => {
+        console.log('Corrida cancelada com sucesso!');
+        
+        // Atualizar interface
+        rideStatusContainer.classList.add('hidden');
+        whatsappContactContainer.classList.add('hidden');
+        
+        // Parar monitoramento
+        stopRideMonitoring();
+    })
+    .catch(error => {
+        console.error('Erro ao cancelar corrida:', error);
+        alert('Erro ao cancelar corrida: ' + error.message);
+    });
+});
+
+// Eventos - Interface do Mototaxista
+driverStatusSelect.addEventListener('change', () => {
+    if (!currentUser) return;
+    
+    const status = driverStatusSelect.value;
+    
+    db.collection('users').doc(currentUser.uid).update({
+        status: status
+    })
+    .then(() => {
+        console.log('Status atualizado com sucesso!');
+        
+        if (status === 'available') {
+            // Iniciar monitoramento de corridas pendentes
+            startPendingRidesMonitoring();
+        } else {
+            // Parar monitoramento
+            stopPendingRidesMonitoring();
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar status:', error);
+        alert('Erro ao atualizar status: ' + error.message);
+    });
+});
+
+completeRideButton.addEventListener('click', () => {
+    if (!currentUser) return;
+    
+    // Verificar se o mototaxista tem uma corrida ativa
+    db.collection('rides')
+        .where('driverId', '==', currentUser.uid)
+        .where('status', '==', 'accepted')
+        .get()
+        .then(querySnapshot => {
+            if (querySnapshot.empty) {
+                alert('Nenhuma corrida ativa encontrada.');
+                return;
+            }
+            
+            const rideDoc = querySnapshot.docs[0];
+            const rideId = rideDoc.id;
+            const rideData = rideDoc.data();
+            
+            // Finalizar corrida
+            return db.collection('rides').doc(rideId).update({
+                status: 'completed',
+                completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                // Mostrar formulário de avaliação
+                return ratingService.showRatingForm(
+                    'passenger',
+                    rideId,
+                    rideData.passengerId,
+                    rideData.passengerName,
+                    rideData.passengerPictureUrl
+                );
+            });
+        })
+        .then(ratingResult => {
+            if (!ratingResult || !ratingResult.submitted) return;
+            
+            // Salvar avaliação
+            return ratingService.saveRating({
+                rideId: ratingResult.rideId,
+                rating: ratingResult.rating,
+                comment: ratingResult.comment,
+                ratingType: 'passenger',
+                ratedBy: currentUser.uid,
+                ratedByName: currentUserData.name,
+                targetUserId: ratingResult.targetUserId
+            });
+        })
+        .then(() => {
+            console.log('Corrida finalizada com sucesso!');
+            
+            // Atualizar interface
+            currentRideContainer.classList.add('hidden');
+            whatsappContactDriverContainer.classList.add('hidden');
+            
+            // Reiniciar monitoramento de corridas pendentes
+            if (driverStatusSelect.value === 'available') {
+                startPendingRidesMonitoring();
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao finalizar corrida:', error);
+            alert('Erro ao finalizar corrida: ' + error.message);
+        });
+});
+
+// Funções auxiliares
+function displayNearbyDrivers(drivers) {
+    if (!nearbyDriversContainer) return;
+    
+    nearbyDriversContainer.innerHTML = '';
+    
+    if (drivers.length === 0) {
+        nearbyDriversContainer.innerHTML = '<p class="empty-message">Nenhum mototaxista disponível nas proximidades.</p>';
+        return;
+    }
+    
+    drivers.forEach(driver => {
+        const driverCard = document.createElement('div');
+        driverCard.className = 'driver-card';
+        
+        const distance = driver.distance.toFixed(1);
+        const rating = driver.rating.toFixed(1);
+        
+        driverCard.innerHTML = `
+            <div class="driver-info">
+                <img src="${driver.profilePictureUrl || 'icons/default-profile.png'}" alt="Foto do mototaxista">
+                <div class="driver-details">
+                    <div class="driver-name">${driver.name}</div>
+                    <div class="driver-rating">★ ${rating} (${driver.ratingCount || 0})</div>
+                    <div class="driver-distance">${distance} km de distância</div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="rating-comment">Comentário (opcional)</label>
-                <textarea id="rating-comment" rows="3" placeholder="Deixe um comentário sobre sua experiência..."></textarea>
-            </div>
-            <button id="submit-rating" class="primary-button">Enviar Avaliação</button>
+        `;
+        
+        nearbyDriversContainer.appendChild(driverCard);
+    });
+}
+
+function startRideMonitoring(rideId) {
+    // Parar monitoramento anterior se existir
+    stopRideMonitoring();
+    
+    // Monitorar status da corrida
+    const unsubscribe = db.collection('rides').doc(rideId)
+        .onSnapshot(doc => {
+            if (!doc.exists) {
+                console.error('Corrida não encontrada');
+                return;
+            }
+            
+            const rideData = doc.data();
+            
+            switch (rideData.status) {
+                case 'pending':
+                    statusMessage.textContent = 'Procurando mototaxistas próximos...';
+                    break;
+                    
+                case 'accepted':
+                    statusMessage.textContent = `Corrida aceita por ${rideData.driverName || 'Mototaxista'}. Aguarde no local de partida.`;
+                    
+                    // Mostrar contato do mototaxista
+                    if (rideData.driverPhone) {
+                        showWhatsAppContact(whatsappContactContainer, rideData.driverPhone, rideData.driverName || 'Mototaxista');
+                    }
+                    
+                    // Mostrar formulário de avaliação quando a corrida for finalizada
+                    const checkCompletionInterval = setInterval(() => {
+                        db.collection('rides').doc(rideId).get()
+                            .then(doc => {
+                                if (!doc.exists) {
+                                    clearInterval(checkCompletionInterval);
+                                    return;
+                                }
+                                
+                                const updatedRideData = doc.data();
+                                
+                                if (updatedRideData.status === 'completed') {
+                                    clearInterval(checkCompletionInterval);
+                                    
+                                    // Mostrar formulário de avaliação
+                                    ratingService.showRatingForm(
+                                        'driver',
+                                        rideId,
+                                        updatedRideData.driverId,
+                                        updatedRideData.driverName,
+                                        updatedRideData.driverPictureUrl
+                                    ).then(ratingResult => {
+                                        if (!ratingResult || !ratingResult.submitted) return;
+                                        
+                                        // Salvar avaliação
+                                        return ratingService.saveRating({
+                                            rideId: rideId,
+                                            rating: ratingResult.rating,
+                                            comment: ratingResult.comment,
+                                            ratingType: 'driver',
+                                            ratedBy: currentUser.uid,
+                                            ratedByName: currentUserData.name,
+                                            targetUserId: updatedRideData.driverId
+                                        });
+                                    }).then(() => {
+                                        // Atualizar interface
+                                        rideStatusContainer.classList.add('hidden');
+                                        whatsappContactContainer.classList.add('hidden');
+                                    }).catch(error => {
+                                        console.error('Erro ao processar avaliação:', error);
+                                    });
+                                }
+                            });
+                    }, 5000); // Verificar a cada 5 segundos
+                    break;
+                    
+                case 'cancelled':
+                    statusMessage.textContent = 'Corrida cancelada.';
+                    
+                    // Esconder após alguns segundos
+                    setTimeout(() => {
+                        rideStatusContainer.classList.add('hidden');
+                    }, 5000);
+                    break;
+                    
+                case 'completed':
+                    statusMessage.textContent = 'Corrida finalizada.';
+                    break;
+            }
+        }, error => {
+            console.error('Erro ao monitorar corrida:', error);
+        });
+    
+    // Verificar timeout da corrida
+    timeoutCheckInterval = setInterval(() => {
+        db.collection('rides').doc(rideId).get()
+            .then(doc => {
+                if (!doc.exists) {
+                    clearInterval(timeoutCheckInterval);
+                    return;
+                }
+                
+                const rideData = doc.data();
+                
+                // Se a corrida ainda estiver pendente
+                if (rideData.status === 'pending') {
+                    const now = new Date();
+                    const timeoutTime = rideData.timeout ? rideData.timeout.toDate() : new Date(0);
+                    const timeDiff = (now - timeoutTime) / (1000 * 60); // diferença em minutos
+                    
+                    // Se passaram mais de 5 minutos, cancelar automaticamente
+                    if (timeDiff > 5) {
+                        db.collection('rides').doc(rideId).update({
+                            status: 'cancelled',
+                            cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            cancellationReason: 'Cancelamento automático por timeout'
+                        }).then(() => {
+                            console.log('Corrida cancelada automaticamente por timeout');
+                            clearInterval(timeoutCheckInterval);
+                        });
+                    }
+                } else {
+                    // Se a corrida não está mais pendente, parar verificação
+                    clearInterval(timeoutCheckInterval);
+                }
+            });
+    }, 30000); // Verificar a cada 30 segundos
+}
+
+function stopRideMonitoring() {
+    if (rideCheckInterval) {
+        clearInterval(rideCheckInterval);
+        rideCheckInterval = null;
+    }
+    
+    if (timeoutCheckInterval) {
+        clearInterval(timeoutCheckInterval);
+        timeoutCheckInterval = null;
+    }
+}
+
+function startPendingRidesMonitoring() {
+    // Parar monitoramento anterior se existir
+    stopPendingRidesMonitoring();
+    
+    // Limpar lista de corridas
+    if (ridesList) {
+        ridesList.innerHTML = '<p class="loading-message">Carregando corridas disponíveis...</p>';
+    }
+    
+    try {
+        // Monitorar corridas pendentes
+        const unsubscribe = db.collection('rides')
+            .where('status', '==', 'pending')
+            .onSnapshot(querySnapshot => {
+                if (ridesList) {
+                    ridesList.innerHTML = '';
+                }
+                
+                if (querySnapshot.empty) {
+                    if (ridesList) {
+                        ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
+                    }
+                    return;
+                }
+                
+                // Verificar corridas já recusadas pelo mototaxista
+                db.collection('declinedRides')
+                    .where('driverId', '==', currentUser.uid)
+                    .get()
+                    .then(declinedSnapshot => {
+                        const declinedRideIds = new Set();
+                        declinedSnapshot.forEach(doc => {
+                            declinedRideIds.add(doc.data().rideId);
+                        });
+                        
+                        // Filtrar corridas não recusadas
+                        const availableRides = [];
+                        querySnapshot.forEach(doc => {
+                            if (!declinedRideIds.has(doc.id)) {
+                                availableRides.push({
+                                    id: doc.id,
+                                    ...doc.data()
+                                });
+                            }
+                        });
+                        
+                        if (availableRides.length === 0) {
+                            if (ridesList) {
+                                ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
+                            }
+                            return;
+                        }
+                        
+                        // Ordenar por tempo (mais recentes primeiro)
+                        availableRides.sort((a, b) => {
+                            const timeA = a.createdAt ? a.createdAt.toDate() : new Date(0);
+                            const timeB = b.createdAt ? b.createdAt.toDate() : new Date(0);
+                            return timeB - timeA;
+                        });
+                        
+                        // Exibir corridas disponíveis
+                        availableRides.forEach(ride => {
+                            displayRideItem(ride);
+                        });
+                    });
+            }, error => {
+                console.error('Erro ao monitorar corridas:', error);
+                if (ridesList) {
+                    ridesList.innerHTML = '<p class="error-message">Erro ao monitorar corridas, tente novamente.</p>';
+                }
+            });
+    } catch (error) {
+        console.error('Erro ao iniciar monitoramento de corridas:', error);
+        if (ridesList) {
+            ridesList.innerHTML = '<p class="error-message">Erro ao monitorar corridas, tente novamente.</p>';
+        }
+    }
+}
+
+function stopPendingRidesMonitoring() {
+    // Implementação para parar o monitoramento
+}
+
+function displayRideItem(ride) {
+    if (!ridesList) return;
+    
+    const rideItem = document.createElement('div');
+    rideItem.className = 'ride-item';
+    
+    const time = ride.createdAt ? ride.createdAt.toDate().toLocaleTimeString('pt-BR') : 'Horário indisponível';
+    
+    rideItem.innerHTML = `
+        <div class="ride-header">
+            <div class="ride-passenger">${ride.passengerName || 'Passageiro'}</div>
+            <div class="ride-time">${time}</div>
+        </div>
+        <div class="ride-locations">
+            <p><strong>Partida:</strong> ${ride.pickup}</p>
+            <p><strong>Destino:</strong> ${ride.destination}</p>
+        </div>
+        <div class="ride-buttons">
+            <button class="primary-button accept-ride-button" data-ride-id="${ride.id}">Aceitar Corrida</button>
+            <button class="secondary-button decline-ride-button" data-ride-id="${ride.id}">Recusar</button>
         </div>
     `;
     
-    document.body.appendChild(modal);
+    // Adicionar eventos aos botões
+    const acceptButton = rideItem.querySelector('.accept-ride-button');
+    const declineButton = rideItem.querySelector('.decline-ride-button');
     
-    // Adicionar event listeners
-    let selectedRating = 0;
-    
-    document.querySelectorAll('.star').forEach(star => {
-        star.addEventListener('click', () => {
-            selectedRating = parseInt(star.dataset.rating);
-            
-            // Atualizar visual
-            document.querySelectorAll('.star').forEach((s, index) => {
-                if (index < selectedRating) {
-                    s.style.color = 'var(--accent-secondary)';
-                } else {
-                    s.style.color = 'var(--text-secondary)';
-                }
-            });
-        });
+    acceptButton.addEventListener('click', () => {
+        acceptRide(ride.id);
     });
     
-    document.getElementById('submit-rating').addEventListener('click', async () => {
-        if (selectedRating === 0) {
-            showToast('Por favor, selecione uma avaliação.', 'error');
-            return;
-        }
-        
-        const comment = document.getElementById('rating-comment').value;
-        
-        try {
-            // Obter dados do usuário
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            const userData = userDoc.data();
+    declineButton.addEventListener('click', () => {
+        declineRide(ride.id);
+    });
+    
+    ridesList.appendChild(rideItem);
+}
+
+function acceptRide(rideId) {
+    if (!currentUser || !currentUserData) return;
+    
+    db.collection('rides').doc(rideId).get()
+        .then(doc => {
+            if (!doc.exists) {
+                alert('Corrida não encontrada ou já foi aceita por outro mototaxista.');
+                return Promise.reject(new Error('Corrida não encontrada'));
+            }
             
-            // Criar avaliação
-            await db.collection('ratings').add({
-                rideId: rideId,
-                authorId: currentUser.uid,
-                authorName: userData.name,
-                authorType: userData.type,
-                targetId: targetId,
-                targetType: targetType,
-                rating: selectedRating,
-                comment: comment,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            const rideData = doc.data();
+            
+            if (rideData.status !== 'pending') {
+                alert('Esta corrida já foi aceita por outro mototaxista ou foi cancelada.');
+                return Promise.reject(new Error('Corrida não disponível'));
+            }
+            
+            // Aceitar corrida
+            return db.collection('rides').doc(rideId).update({
+                status: 'accepted',
+                driverId: currentUser.uid,
+                driverName: currentUserData.name,
+                driverPhone: currentUserData.phone,
+                driverPictureUrl: currentUserData.profilePictureUrl || '',
+                acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+        })
+        .then(() => {
+            console.log('Corrida aceita com sucesso!');
             
-            showToast('Avaliação enviada com sucesso!', 'success');
+            // Parar monitoramento de corridas pendentes
+            stopPendingRidesMonitoring();
             
-            // Fechar modal
-            closeRatingModal();
-        } catch (error) {
-            console.error('Erro ao enviar avaliação:', error);
-            showToast('Erro ao enviar avaliação. Tente novamente.', 'error');
+            // Buscar dados atualizados da corrida
+            return db.collection('rides').doc(rideId).get();
+        })
+        .then(doc => {
+            if (!doc.exists) return;
+            
+            const rideData = doc.data();
+            
+            // Atualizar interface
+            currentRideContainer.classList.remove('hidden');
+            passengerNameElement.textContent = rideData.passengerName || 'Passageiro';
+            ridePickupElement.textContent = rideData.pickup;
+            rideDestinationElement.textContent = rideData.destination;
+            
+            // Mostrar contato do passageiro
+            if (rideData.passengerPhone) {
+                showWhatsAppContact(whatsappContactDriverContainer, rideData.passengerPhone, rideData.passengerName || 'Passageiro');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao aceitar corrida:', error);
+            if (error.message !== 'Corrida não encontrada' && error.message !== 'Corrida não disponível') {
+                alert('Erro ao aceitar corrida: ' + error.message);
+            }
+        });
+}
+
+function declineRide(rideId) {
+    if (!currentUser) return;
+    
+    // Registrar recusa
+    db.collection('declinedRides').add({
+        rideId: rideId,
+        driverId: currentUser.uid,
+        declinedAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+        console.log('Corrida recusada com sucesso!');
+        
+        // Remover da lista
+        const rideItem = document.querySelector(`.ride-item .decline-ride-button[data-ride-id="${rideId}"]`).closest('.ride-item');
+        if (rideItem && rideItem.parentNode) {
+            rideItem.parentNode.removeChild(rideItem);
         }
+        
+        // Verificar se a lista ficou vazia
+        if (ridesList && ridesList.children.length === 0) {
+            ridesList.innerHTML = '<p class="empty-message">Nenhuma corrida disponível no momento.</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao recusar corrida:', error);
+        alert('Erro ao recusar corrida: ' + error.message);
     });
 }
 
-// Funções do Admin
-async function loadAdminDashboard() {
-    try {
-        // Carregar estatísticas
-        const usersSnapshot = await db.collection('users').get();
-        const driversSnapshot = await db.collection('users').where('type', '==', 'driver').where('status', '==', 'available').get();
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const ridesTodaySnapshot = await db.collection('rides')
-            .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(today))
-            .get();
-        
-        const totalRidesSnapshot = await db.collection('rides').get();
-        
-        totalUsers.textContent = usersSnapshot.size;
-        activeDrivers.textContent = driversSnapshot.size;
-        ridesToday.textContent = ridesTodaySnapshot.size;
-        totalRides.textContent = totalRidesSnapshot.size;
-        
-        // Carregar atividades recentes
-        const activitiesSnapshot = await db.collection('rides')
+function showWhatsAppContact(container, phone, name) {
+    if (!container) return;
+    
+    // Limpar número de telefone (remover caracteres não numéricos)
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Verificar se o número tem DDD
+    let formattedPhone = cleanPhone;
+    if (cleanPhone.length === 9 || cleanPhone.length === 8) {
+        // Adicionar DDD padrão se não tiver
+        formattedPhone = '11' + cleanPhone;
+    }
+    
+    // Criar link do WhatsApp
+    const whatsappLink = `https://wa.me/55${formattedPhone}`;
+    
+    container.innerHTML = `
+        <p>Entre em contato via WhatsApp:</p>
+        <a href="${whatsappLink}" target="_blank" class="whatsapp-button">
+            <img src="icons/whatsapp.png" alt="WhatsApp">
+            Contatar ${name}
+        </a>
+    `;
+    
+    container.classList.remove('hidden');
+}
+
+function loadRideHistory(accountType) {
+    if (!rideHistoryContainer || !currentUser) return;
+    
+    rideHistoryContainer.innerHTML = '<p class="loading-message">Carregando histórico...</p>';
+    
+    let query;
+    
+    if (accountType === 'user') {
+        query = db.collection('rides')
+            .where('passengerId', '==', currentUser.uid)
             .orderBy('createdAt', 'desc')
-            .limit(10)
-            .get();
-        
-        activityList.innerHTML = '';
-        
-        if (activitiesSnapshot.empty) {
-            activityList.innerHTML = '<p class="empty-message">Nenhuma atividade recente.</p>';
-            return;
-        }
-        
-        activitiesSnapshot.forEach(doc => {
-            const ride = doc.data();
-            const rideTime = ride.createdAt ? ride.createdAt.toDate() : new Date();
-            const formattedTime = formatDate(rideTime);
-            
-            let activityText = '';
-            
-            switch (ride.status) {
-                case 'pending':
-                    activityText = `${ride.passengerName} solicitou uma corrida`;
-                    break;
-                case 'accepted':
-                    activityText = `${ride.driverName} aceitou a corrida de ${ride.passengerName}`;
-                    break;
-                case 'completed':
-                    activityText = `Corrida de ${ride.passengerName} foi concluída por ${ride.driverName}`;
-                    break;
-                case 'cancelled':
-                    activityText = `Corrida de ${ride.passengerName} foi cancelada`;
-                    break;
-                default:
-                    activityText = `Atividade desconhecida`;
-            }
-            
-            const activityElement = document.createElement('div');
-            activityElement.className = 'activity-item';
-            activityElement.innerHTML = `
-                <span>${activityText}</span>
-                <span class="activity-time">${formattedTime}</span>
-            `;
-            
-            activityList.appendChild(activityElement);
-        });
-    } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
-        showToast('Erro ao carregar dashboard. Tente novamente.', 'error');
+            .limit(10);
+    } else {
+        query = db.collection('rides')
+            .where('driverId', '==', currentUser.uid)
+            .orderBy('createdAt', 'desc')
+            .limit(10);
     }
-}
-
-async function loadAdminUsers(search = '', filter = 'all') {
-    try {
-        usersList.innerHTML = '<p class="loading-message">Carregando usuários...</p>';
-        
-        // Construir query base
-        let query = db.collection('users');
-        
-        // Aplicar filtro
-        if (filter === 'user') {
-            query = query.where('type', '==', 'user');
-        } else if (filter === 'driver') {
-            query = query.where('type', '==', 'driver');
-        } else if (filter === 'blocked') {
-            query = query.where('blocked', '==', true);
-        }
-        
-        // Executar query
-        const usersSnapshot = await query.get();
-        
-        if (usersSnapshot.empty) {
-            usersList.innerHTML = '<p class="empty-message">Nenhum usuário encontrado.</p>';
-            return;
-        }
-        
-        // Filtrar por busca se necessário
-        let filteredUsers = [];
-        
-        usersSnapshot.forEach(doc => {
-            const user = {
-                id: doc.id,
-                ...doc.data()
-            };
+    
+    query.get()
+        .then(querySnapshot => {
+            rideHistoryContainer.innerHTML = '';
             
-            // Aplicar filtro de busca
-            if (search && !user.name.toLowerCase().includes(search.toLowerCase()) && !user.email.toLowerCase().includes(search.toLowerCase())) {
+            if (querySnapshot.empty) {
+                rideHistoryContainer.innerHTML = '<p class="empty-message">Nenhuma viagem encontrada no histórico.</p>';
                 return;
             }
             
-            filteredUsers.push(user);
-        });
-        
-        // Ordenar por nome
-        filteredUsers.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Limpar e adicionar cada usuário à lista
-        usersList.innerHTML = '';
-        
-        if (filteredUsers.length === 0) {
-            usersList.innerHTML = '<p class="empty-message">Nenhum usuário encontrado.</p>';
-            return;
-        }
-        
-        filteredUsers.forEach(user => {
-            const userElement = document.createElement('div');
-            userElement.className = 'user-item';
-            userElement.innerHTML = `
-                <div class="user-item-info">
-                    <img src="${user.profilePicture || 'icons/default-profile.png'}" alt="Foto de perfil">
-                    <div class="user-item-details">
-                        <h4>${user.name}</h4>
-                        <p>${user.email}</p>
-                        <p>${user.type === 'driver' ? 'Mototaxista' : 'Passageiro'} | ${user.phone || 'Sem telefone'}</p>
-                    </div>
-                </div>
-                <div class="user-item-actions">
-                    <button class="secondary-button ${user.blocked ? 'unblock-user-button' : 'block-user-button'}" data-user-id="${user.id}">
-                        ${user.blocked ? 'Desbloquear' : 'Bloquear'}
-                    </button>
-                </div>
-            `;
-            
-            usersList.appendChild(userElement);
-            
-            // Adicionar event listeners
-            if (user.blocked) {
-                userElement.querySelector('.unblock-user-button').addEventListener('click', () => {
-                    handleUnblockUser(user.id);
-                });
-            } else {
-                userElement.querySelector('.block-user-button').addEventListener('click', () => {
-                    handleBlockUser(user.id);
-                });
-            }
-        });
-    } catch (error) {
-        console.error('Erro ao carregar usuários:', error);
-        usersList.innerHTML = '<p class="error-message">Erro ao carregar usuários. Tente novamente.</p>';
-    }
-}
-
-async function handleBlockUser(userId) {
-    try {
-        await db.collection('users').doc(userId).update({
-            blocked: true,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Usuário bloqueado com sucesso!', 'success');
-        
-        // Recarregar lista
-        loadAdminUsers(userSearch.value, userFilter.value);
-    } catch (error) {
-        console.error('Erro ao bloquear usuário:', error);
-        showToast('Erro ao bloquear usuário. Tente novamente.', 'error');
-    }
-}
-
-async function handleUnblockUser(userId) {
-    try {
-        await db.collection('users').doc(userId).update({
-            blocked: false,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Usuário desbloqueado com sucesso!', 'success');
-        
-        // Recarregar lista
-        loadAdminUsers(userSearch.value, userFilter.value);
-    } catch (error) {
-        console.error('Erro ao desbloquear usuário:', error);
-        showToast('Erro ao desbloquear usuário. Tente novamente.', 'error');
-    }
-}
-
-async function loadAdminRides(search = '', filter = 'all') {
-    try {
-        adminRidesList.innerHTML = '<p class="loading-message">Carregando corridas...</p>';
-        
-        // Construir query base
-        let query = db.collection('rides');
-        
-        // Aplicar filtro
-        if (filter === 'pending') {
-            query = query.where('status', '==', 'pending');
-        } else if (filter === 'accepted') {
-            query = query.where('status', '==', 'accepted');
-        } else if (filter === 'completed') {
-            query = query.where('status', '==', 'completed');
-        } else if (filter === 'cancelled') {
-            query = query.where('status', '==', 'cancelled');
-        }
-        
-        // Ordenar por data
-        query = query.orderBy('createdAt', 'desc');
-        
-        // Executar query
-        const ridesSnapshot = await query.limit(50).get();
-        
-        if (ridesSnapshot.empty) {
-            adminRidesList.innerHTML = '<p class="empty-message">Nenhuma corrida encontrada.</p>';
-            return;
-        }
-        
-        // Filtrar por busca se necessário
-        let filteredRides = [];
-        
-        ridesSnapshot.forEach(doc => {
-            const ride = {
-                id: doc.id,
-                ...doc.data()
-            };
-            
-            // Aplicar filtro de busca
-            if (search && 
-                !ride.passengerName?.toLowerCase().includes(search.toLowerCase()) && 
-                !ride.driverName?.toLowerCase().includes(search.toLowerCase()) &&
-                !ride.pickup?.toLowerCase().includes(search.toLowerCase()) &&
-                !ride.destination?.toLowerCase().includes(search.toLowerCase())) {
-                return;
-            }
-            
-            filteredRides.push(ride);
-        });
-        
-        // Limpar e adicionar cada corrida à lista
-        adminRidesList.innerHTML = '';
-        
-        if (filteredRides.length === 0) {
-            adminRidesList.innerHTML = '<p class="empty-message">Nenhuma corrida encontrada.</p>';
-            return;
-        }
-        
-        filteredRides.forEach(ride => {
-            const rideTime = ride.createdAt ? ride.createdAt.toDate() : new Date();
-            const formattedTime = formatDate(rideTime);
-            
-            let statusClass = '';
-            let statusText = '';
-            
-            switch (ride.status) {
-                case 'pending':
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-                    break;
-                case 'accepted':
-                    statusClass = 'status-accepted';
-                    statusText = 'Aceita';
-                    break;
-                case 'completed':
-                    statusClass = 'status-completed';
-                    statusText = 'Concluída';
-                    break;
-                case 'cancelled':
-                    statusClass = 'status-cancelled';
-                    statusText = 'Cancelada';
-                    break;
-                default:
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-            }
-            
-            const rideElement = document.createElement('div');
-            rideElement.className = 'admin-ride-item';
-            rideElement.innerHTML = `
-                <div class="admin-ride-header">
-                    <div>
-                        <h4>Corrida #${ride.id.substring(0, 6)}</h4>
-                        <span class="history-date">${formattedTime}</span>
-                    </div>
-                    <span class="history-status ${statusClass}">${statusText}</span>
-                </div>
-                <div class="admin-ride-details">
-                    <p><strong>Partida:</strong> ${ride.pickup}</p>
-                    <p><strong>Destino:</strong> ${ride.destination}</p>
-                    ${ride.status === 'cancelled' && ride.cancelReason ? `<p><strong>Motivo do cancelamento:</strong> ${ride.cancelReason}</p>` : ''}
-                </div>
-                <div class="admin-ride-users">
-                    <div class="admin-ride-user">
-                        <img src="${ride.passengerPictureUrl || 'icons/default-profile.png'}" alt="Foto do passageiro">
-                        <div>
-                            <p><strong>Passageiro:</strong> ${ride.passengerName || 'Não informado'}</p>
-                            <p>${ride.passengerPhone || 'Sem telefone'}</p>
-                        </div>
-                    </div>
-                    ${ride.driverId ? `
-                        <div class="admin-ride-user">
-                            <img src="${ride.driverPictureUrl || 'icons/default-profile.png'}" alt="Foto do mototaxista">
-                            <div>
-                                <p><strong>Mototaxista:</strong> ${ride.driverName || 'Não informado'}</p>
-                                <p>${ride.driverPhone || 'Sem telefone'}</p>
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            adminRidesList.appendChild(rideElement);
-        });
-    } catch (error) {
-        console.error('Erro ao carregar corridas:', error);
-        adminRidesList.innerHTML = '<p class="error-message">Erro ao carregar corridas. Tente novamente.</p>';
-    }
-}
-
-async function loadAdminSuggestions(search = '', filter = 'all') {
-    try {
-        adminSuggestionsList.innerHTML = '<p class="loading-message">Carregando sugestões...</p>';
-        
-        // Construir query base
-        let query = db.collection('suggestions');
-        
-        // Aplicar filtro
-        if (filter === 'pending') {
-            query = query.where('status', '==', 'pending');
-        } else if (filter === 'approved') {
-            query = query.where('status', '==', 'approved');
-        } else if (filter === 'rejected') {
-            query = query.where('status', '==', 'rejected');
-        } else if (filter === 'implemented') {
-            query = query.where('status', '==', 'implemented');
-        }
-        
-        // Ordenar por data
-        query = query.orderBy('createdAt', 'desc');
-        
-        // Executar query
-        const suggestionsSnapshot = await query.limit(50).get();
-        
-        if (suggestionsSnapshot.empty) {
-            adminSuggestionsList.innerHTML = '<p class="empty-message">Nenhuma sugestão encontrada.</p>';
-            return;
-        }
-        
-        // Filtrar por busca se necessário
-        let filteredSuggestions = [];
-        
-        suggestionsSnapshot.forEach(doc => {
-            const suggestion = {
-                id: doc.id,
-                ...doc.data()
-            };
-            
-            // Aplicar filtro de busca
-            if (search && 
-                !suggestion.title?.toLowerCase().includes(search.toLowerCase()) && 
-                !suggestion.text?.toLowerCase().includes(search.toLowerCase()) &&
-                !suggestion.userName?.toLowerCase().includes(search.toLowerCase())) {
-                return;
-            }
-            
-            filteredSuggestions.push(suggestion);
-        });
-        
-        // Limpar e adicionar cada sugestão à lista
-        adminSuggestionsList.innerHTML = '';
-        
-        if (filteredSuggestions.length === 0) {
-            adminSuggestionsList.innerHTML = '<p class="empty-message">Nenhuma sugestão encontrada.</p>';
-            return;
-        }
-        
-        filteredSuggestions.forEach(suggestion => {
-            const suggestionTime = suggestion.createdAt ? suggestion.createdAt.toDate() : new Date();
-            const formattedTime = formatDate(suggestionTime);
-            
-            let statusClass = '';
-            let statusText = '';
-            
-            switch (suggestion.status) {
-                case 'pending':
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-                    break;
-                case 'approved':
-                    statusClass = 'status-approved';
-                    statusText = 'Aprovada';
-                    break;
-                case 'rejected':
-                    statusClass = 'status-rejected';
-                    statusText = 'Rejeitada';
-                    break;
-                case 'implemented':
-                    statusClass = 'status-implemented';
-                    statusText = 'Implementada';
-                    break;
-                default:
-                    statusClass = 'status-pending';
-                    statusText = 'Pendente';
-            }
-            
-            let typeText = '';
-            
-            switch (suggestion.type) {
-                case 'improvement':
-                    typeText = 'Melhoria';
-                    break;
-                case 'bug':
-                    typeText = 'Problema';
-                    break;
-                case 'feature':
-                    typeText = 'Nova Funcionalidade';
-                    break;
-                case 'other':
-                    typeText = 'Outro';
-                    break;
-                default:
-                    typeText = 'Outro';
-            }
-            
-            const suggestionElement = document.createElement('div');
-            suggestionElement.className = 'admin-suggestion-item';
-            suggestionElement.innerHTML = `
-                <div class="admin-suggestion-header">
-                    <div>
-                        <h4 class="admin-suggestion-title">${suggestion.title}</h4>
-                        <span class="admin-suggestion-date">${formattedTime} por ${suggestion.userName} (${suggestion.userType === 'driver' ? 'Mototaxista' : 'Passageiro'})</span>
-                    </div>
-                    <span class="suggestion-status ${statusClass}">${statusText}</span>
-                </div>
-                <div class="admin-suggestion-content">
-                    <p>${suggestion.text}</p>
-                </div>
-                <div class="admin-suggestion-footer">
-                    <span class="suggestion-type">${typeText}</span>
-                    <div class="suggestion-actions">
-                        ${suggestion.status === 'pending' ? `
-                            <button class="secondary-button approve-suggestion-button" data-suggestion-id="${suggestion.id}">Aprovar</button>
-                            <button class="secondary-button reject-suggestion-button" data-suggestion-id="${suggestion.id}">Rejeitar</button>
-                        ` : suggestion.status === 'approved' ? `
-                            <button class="secondary-button implement-suggestion-button" data-suggestion-id="${suggestion.id}">Marcar como Implementada</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            
-            adminSuggestionsList.appendChild(suggestionElement);
-            
-            // Adicionar event listeners
-            if (suggestion.status === 'pending') {
-                suggestionElement.querySelector('.approve-suggestion-button').addEventListener('click', () => {
-                    handleApproveSuggestion(suggestion.id);
-                });
+            querySnapshot.forEach(doc => {
+                const ride = doc.data();
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
                 
-                suggestionElement.querySelector('.reject-suggestion-button').addEventListener('click', () => {
-                    handleRejectSuggestion(suggestion.id);
+                const date = ride.createdAt ? ride.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                const time = ride.createdAt ? ride.createdAt.toDate().toLocaleTimeString('pt-BR') : '';
+                
+                let statusText = 'Pendente';
+                let statusClass = '';
+                
+                if (ride.status === 'completed') {
+                    statusText = 'Finalizada';
+                    statusClass = 'status-completed';
+                } else if (ride.status === 'cancelled') {
+                    statusText = 'Cancelada';
+                    statusClass = 'status-cancelled';
+                } else if (ride.status === 'accepted') {
+                    statusText = 'Em andamento';
+                }
+                
+                const otherPersonName = accountType === 'user' ? (ride.driverName || 'Mototaxista') : (ride.passengerName || 'Passageiro');
+                
+                historyItem.innerHTML = `
+                    <div class="history-header">
+                        <div class="history-date">${date} às ${time}</div>
+                        <div class="history-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="history-details">
+                        <p><strong>${accountType === 'user' ? 'Mototaxista' : 'Passageiro'}:</strong> ${otherPersonName}</p>
+                        <p><strong>Partida:</strong> ${ride.pickup}</p>
+                        <p><strong>Destino:</strong> ${ride.destination}</p>
+                    </div>
+                `;
+                
+                // Adicionar avaliação se disponível
+                if (ride.status === 'completed') {
+                    const ratingField = accountType === 'user' ? 'driverRating' : 'passengerRating';
+                    if (ride[ratingField]) {
+                        const ratingDiv = document.createElement('div');
+                        ratingDiv.className = 'history-rating';
+                        
+                        const stars = '★'.repeat(ride[ratingField]) + '☆'.repeat(5 - ride[ratingField]);
+                        
+                        ratingDiv.innerHTML = `
+                            <span>Avaliação:</span>
+                            <span class="rating-stars">${stars}</span>
+                        `;
+                        
+                        historyItem.appendChild(ratingDiv);
+                    }
+                }
+                
+                rideHistoryContainer.appendChild(historyItem);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar histórico:', error);
+            rideHistoryContainer.innerHTML = '<p class="error-message">Erro ao carregar histórico.</p>';
+        });
+}
+
+// Observador de autenticação
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        
+        // Buscar dados do usuário
+        db.collection('users').doc(user.uid).get()
+            .then(doc => {
+                if (doc.exists) {
+                    currentUserData = doc.data();
+                    
+                    // Atualizar interface
+                    authSection.classList.add('hidden');
+                    appSection.classList.remove('hidden');
+                    
+                    userNameElement.textContent = currentUserData.name || 'Usuário';
+                    
+                    if (currentUserData.profilePictureUrl) {
+                        userProfilePicture.src = currentUserData.profilePictureUrl;
+                        profilePicturePreview.src = currentUserData.profilePictureUrl;
+                    }
+                    
+                    // Preencher campos do perfil
+                    profileNameInput.value = currentUserData.name || '';
+                    profilePhoneInput.value = currentUserData.phone || '';
+                    
+                    // Exibir interface baseada no tipo de conta
+                    if (currentUserData.accountType === 'user') {
+                        passengerInterface.classList.remove('hidden');
+                        driverInterface.classList.add('hidden');
+                    } else {
+                        driverInterface.classList.remove('hidden');
+                        passengerInterface.classList.add('hidden');
+                        
+                        // Definir status inicial
+                        driverStatusSelect.value = currentUserData.status || 'unavailable';
+                        
+                        // Verificar se há corrida ativa
+                        db.collection('rides')
+                            .where('driverId', '==', user.uid)
+                            .where('status', '==', 'accepted')
+                            .get()
+                            .then(querySnapshot => {
+                                if (!querySnapshot.empty) {
+                                    const rideDoc = querySnapshot.docs[0];
+                                    const rideData = rideDoc.data();
+                                    
+                                    // Atualizar interface
+                                    currentRideContainer.classList.remove('hidden');
+                                    passengerNameElement.textContent = rideData.passengerName || 'Passageiro';
+                                    ridePickupElement.textContent = rideData.pickup;
+                                    rideDestinationElement.textContent = rideData.destination;
+                                    
+                                    // Mostrar contato do passageiro
+                                    if (rideData.passengerPhone) {
+                                        showWhatsAppContact(whatsappContactDriverContainer, rideData.passengerPhone, rideData.passengerName || 'Passageiro');
+                                    }
+                                } else if (currentUserData.status === 'available') {
+                                    // Iniciar monitoramento de corridas pendentes
+                                    startPendingRidesMonitoring();
+                                }
+                            });
+                    }
+                    
+                    // Verificar se há corrida ativa para passageiro
+                    if (currentUserData.accountType === 'user') {
+                        db.collection('rides')
+                            .where('passengerId', '==', user.uid)
+                            .where('status', 'in', ['pending', 'accepted'])
+                            .get()
+                            .then(querySnapshot => {
+                                if (!querySnapshot.empty) {
+                                    const rideDoc = querySnapshot.docs[0];
+                                    const rideId = rideDoc.id;
+                                    const rideData = rideDoc.data();
+                                    
+                                    // Verificar se a corrida é antiga (mais de 1 hora)
+                                    const now = new Date();
+                                    const rideTime = rideData.createdAt ? rideData.createdAt.toDate() : new Date(0);
+                                    const timeDiff = (now - rideTime) / (1000 * 60); // diferença em minutos
+                                    
+                                    if (timeDiff > 60) {
+                                        // Corrida antiga, cancelar automaticamente
+                                        return db.collection('rides').doc(rideId).update({
+                                            status: 'cancelled',
+                                            cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                            cancellationReason: 'Cancelamento automático por timeout'
+                                        });
+                                    } else {
+                                        // Atualizar interface
+                                        rideStatusContainer.classList.remove('hidden');
+                                        cancelRideButton.dataset.rideId = rideId;
+                                        
+                                        if (rideData.status === 'pending') {
+                                            statusMessage.textContent = 'Procurando mototaxistas próximos...';
+                                        } else if (rideData.status === 'accepted') {
+                                            statusMessage.textContent = `Corrida aceita por ${rideData.driverName || 'Mototaxista'}. Aguarde no local de partida.`;
+                                            
+                                            // Mostrar contato do mototaxista
+                                            if (rideData.driverPhone) {
+                                                showWhatsAppContact(whatsappContactContainer, rideData.driverPhone, rideData.driverName || 'Mototaxista');
+                                            }
+                                        }
+                                        
+                                        // Iniciar monitoramento
+                                        startRideMonitoring(rideId);
+                                    }
+                                }
+                            });
+                    }
+                    
+                    // Exibir avaliação média do usuário
+                    const userRatingContainer = document.getElementById('user-rating');
+                    if (userRatingContainer && ratingService) {
+                        ratingService.displayUserAverageRating(user.uid, userRatingContainer);
+                    }
+                } else {
+                    console.error('Documento do usuário não encontrado');
+                    alert('Erro ao carregar dados do usuário. Por favor, faça login novamente.');
+                    auth.signOut();
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar dados do usuário:', error);
+                alert('Erro ao carregar dados do usuário: ' + error.message);
+            });
+    } else {
+        currentUser = null;
+        currentUserData = null;
+        
+        // Atualizar interface
+        authSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
+        
+        // Limpar campos
+        document.getElementById('login-email').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('register-name').value = '';
+        document.getElementById('register-phone').value = '';
+        document.getElementById('register-email').value = '';
+        document.getElementById('register-password').value = '';
+        
+        // Parar monitoramentos
+        stopRideMonitoring();
+        stopPendingRidesMonitoring();
+        
+        // Limpar localização
+        if (watchLocationId !== null) {
+            geoService.stopWatching(watchLocationId);
+            watchLocationId = null;
+        }
+    }
+});
+
+// Limpar corridas antigas ao iniciar
+db.collection('rides')
+    .where('status', '==', 'pending')
+    .get()
+    .then(querySnapshot => {
+        const batch = db.batch();
+        const now = new Date();
+        
+        querySnapshot.forEach(doc => {
+            const rideData = doc.data();
+            const rideTime = rideData.createdAt ? rideData.createdAt.toDate() : new Date(0);
+            const timeDiff = (now - rideTime) / (1000 * 60); // diferença em minutos
+            
+            if (timeDiff > 60) {
+                batch.update(doc.ref, {
+                    status: 'cancelled',
+                    cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    cancellationReason: 'Cancelamento automático por timeout'
                 });
-            } else if (suggestion.status === 'approved') {
-                const implementButton = suggestionElement.querySelector('.implement-suggestion-button');
-                if (implementButton) {
-                    implementButton.addEventListener('click', () => {
-                        handleImplementSuggestion(suggestion.id);
+            }
+        });
+        
+        return batch.commit();
+    })
+    .catch(error => {
+        console.error('Erro ao limpar corridas antigas:', error);
+    });
+
+// Eventos de Navegação
+navMain.addEventListener('click', () => {
+    showSection('main');
+});
+
+navProfile.addEventListener('click', () => {
+    showSection('profile');
+    loadUserProfile();
+});
+
+navHistory.addEventListener('click', () => {
+    showSection('history');
+    loadUserHistory();
+});
+
+navSuggestions.addEventListener('click', () => {
+    showSection('suggestions');
+    loadUserSuggestions();
+});
+
+navAdmin.addEventListener('click', () => {
+    showSection('admin');
+    loadAdminData();
+});
+
+navPricing.addEventListener('click', () => {
+    showSection('pricing');
+    loadPricingTable();
+});
+
+navPayments.addEventListener('click', () => {
+    showSection('payments');
+    loadPaymentHistory();
+});
+
+// Função para mostrar seções
+function showSection(sectionName) {
+    // Esconder todas as seções
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.classList.add('hidden'));
+    
+    // Remover classe active de todos os botões de navegação
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach(button => button.classList.remove('active'));
+    
+    // Mostrar a seção correspondente
+    switch(sectionName) {
+        case 'main':
+            if (currentUserData && currentUserData.accountType === 'user') {
+                passengerInterface.classList.remove('hidden');
+            } else if (currentUserData && currentUserData.accountType === 'driver') {
+                driverInterface.classList.remove('hidden');
+            }
+            navMain.classList.add('active');
+            break;
+        case 'profile':
+            profileSection.classList.remove('hidden');
+            navProfile.classList.add('active');
+            break;
+        case 'history':
+            historySection.classList.remove('hidden');
+            navHistory.classList.add('active');
+            break;
+        case 'suggestions':
+            suggestionsSection.classList.remove('hidden');
+            navSuggestions.classList.add('active');
+            break;
+        case 'admin':
+            adminSection.classList.remove('hidden');
+            navAdmin.classList.add('active');
+            break;
+        case 'pricing':
+            pricingSection.classList.remove('hidden');
+            navPricing.classList.add('active');
+            break;
+        case 'payments':
+            paymentsSection.classList.remove('hidden');
+            navPayments.classList.add('active');
+            break;
+    }
+}
+
+// Função para carregar perfil do usuário
+function loadUserProfile() {
+    if (!currentUser) return;
+    
+    db.collection('users').doc(currentUser.uid).get()
+        .then(doc => {
+            if (doc.exists) {
+                const userData = doc.data();
+                profileNameInput.value = userData.name || '';
+                profilePhoneInput.value = userData.phone || '';
+                
+                if (userData.profilePictureUrl) {
+                    profilePicturePreview.src = userData.profilePictureUrl;
+                    userProfilePicture.src = userData.profilePictureUrl;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar perfil:', error);
+        });
+}
+
+// Função para carregar histórico do usuário
+function loadUserHistory() {
+    if (!currentUser) return;
+    
+    // Carregar histórico de corridas
+    db.collection('rides')
+        .where('passengerId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .limit(20)
+        .get()
+        .then(querySnapshot => {
+            rideHistoryContainer.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                rideHistoryContainer.innerHTML = '<p class="empty-message">Nenhuma corrida encontrada.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const ride = doc.data();
+                const rideElement = createRideHistoryElement(ride);
+                rideHistoryContainer.appendChild(rideElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar histórico:', error);
+            rideHistoryContainer.innerHTML = '<p class="error-message">Erro ao carregar histórico.</p>';
+        });
+    
+    // Carregar histórico de avaliações
+    ratingService.getUserRatings(currentUser.uid)
+        .then(ratings => {
+            userRatingsHistory.innerHTML = '';
+            
+            if (ratings.length === 0) {
+                userRatingsHistory.innerHTML = '<p class="empty-message">Nenhuma avaliação encontrada.</p>';
+                return;
+            }
+            
+            ratings.forEach(rating => {
+                const ratingElement = createRatingHistoryElement(rating);
+                userRatingsHistory.appendChild(ratingElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar avaliações:', error);
+            userRatingsHistory.innerHTML = '<p class="error-message">Erro ao carregar avaliações.</p>';
+        });
+}
+
+// Função para carregar sugestões do usuário
+function loadUserSuggestions() {
+    if (!currentUser) return;
+    
+    db.collection('suggestions')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .get()
+        .then(querySnapshot => {
+            suggestionsList.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                suggestionsList.innerHTML = '<p class="empty-message">Nenhuma sugestão enviada.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const suggestion = doc.data();
+                const suggestionElement = createSuggestionElement(suggestion);
+                suggestionsList.appendChild(suggestionElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar sugestões:', error);
+            suggestionsList.innerHTML = '<p class="error-message">Erro ao carregar sugestões.</p>';
+        });
+}
+
+// Função para carregar dados do admin
+function loadAdminData() {
+    if (!currentUserData || currentUserData.accountType !== 'admin') return;
+    
+    // Carregar estatísticas
+    Promise.all([
+        db.collection('users').get(),
+        db.collection('rides').get(),
+        db.collection('suggestions').get(),
+        db.collection('ratings').get()
+    ]).then(([usersSnapshot, ridesSnapshot, suggestionsSnapshot, ratingsSnapshot]) => {
+        totalUsersElement.textContent = usersSnapshot.size;
+        totalRidesElement.textContent = ridesSnapshot.size;
+        totalSuggestionsElement.textContent = suggestionsSnapshot.size;
+        totalRatingsElement.textContent = ratingsSnapshot.size;
+    }).catch(error => {
+        console.error('Erro ao carregar estatísticas:', error);
+    });
+    
+    // Carregar usuários para gestão
+    loadUsersManagement();
+    
+    // Carregar sugestões para admin
+    loadAdminSuggestions();
+    
+    // Carregar avaliações para admin
+    loadAdminRatings();
+}
+
+// Função para carregar gestão de usuários
+function loadUsersManagement() {
+    db.collection('users')
+        .orderBy('createdAt', 'desc')
+        .get()
+        .then(querySnapshot => {
+            usersManagement.innerHTML = '';
+            
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                const userElement = createUserManagementElement(doc.id, user);
+                usersManagement.appendChild(userElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar usuários:', error);
+            usersManagement.innerHTML = '<p class="error-message">Erro ao carregar usuários.</p>';
+        });
+}
+
+// Função para carregar sugestões do admin
+function loadAdminSuggestions() {
+    db.collection('suggestions')
+        .orderBy('createdAt', 'desc')
+        .get()
+        .then(querySnapshot => {
+            adminSuggestions.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                adminSuggestions.innerHTML = '<p class="empty-message">Nenhuma sugestão encontrada.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const suggestion = doc.data();
+                const suggestionElement = createAdminSuggestionElement(suggestion);
+                adminSuggestions.appendChild(suggestionElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar sugestões:', error);
+            adminSuggestions.innerHTML = '<p class="error-message">Erro ao carregar sugestões.</p>';
+        });
+}
+
+// Função para carregar avaliações do admin
+function loadAdminRatings() {
+    db.collection('ratings')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get()
+        .then(querySnapshot => {
+            adminRatings.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                adminRatings.innerHTML = '<p class="empty-message">Nenhuma avaliação encontrada.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const rating = doc.data();
+                const ratingElement = createAdminRatingElement(rating);
+                adminRatings.appendChild(ratingElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar avaliações:', error);
+            adminRatings.innerHTML = '<p class="error-message">Erro ao carregar avaliações.</p>';
+        });
+}
+
+// Função para carregar tabela de preços
+function loadPricingTable() {
+    db.collection('settings').doc('pricing').get()
+        .then(doc => {
+            if (doc.exists && doc.data().imageUrl) {
+                pricingContent.innerHTML = `<img src="${doc.data().imageUrl}" alt="Tabela de Preços" class="pricing-image">`;
+            } else {
+                pricingContent.innerHTML = '<p class="empty-message">Tabela de preços não disponível.</p>';
+            }
+            
+            // Mostrar área de admin se for administrador
+            if (currentUserData && currentUserData.accountType === 'admin') {
+                pricingAdmin.classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar tabela de preços:', error);
+            pricingContent.innerHTML = '<p class="error-message">Erro ao carregar tabela de preços.</p>';
+        });
+}
+
+// Função para carregar histórico de pagamentos
+function loadPaymentHistory() {
+    if (!currentUser || currentUserData.accountType !== 'driver') return;
+    
+    // Verificar status do pagamento atual
+    db.collection('payments')
+        .where('driverId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get()
+        .then(querySnapshot => {
+            if (!querySnapshot.empty) {
+                const lastPayment = querySnapshot.docs[0].data();
+                const now = new Date();
+                const paymentDate = lastPayment.createdAt.toDate();
+                const daysDiff = (now - paymentDate) / (1000 * 60 * 60 * 24);
+                
+                if (daysDiff <= 7 && lastPayment.status === 'paid') {
+                    paymentStatus.textContent = 'Pagamento em dia';
+                    paymentStatus.style.color = '#28a745';
+                } else {
+                    paymentStatus.textContent = 'Pagamento pendente';
+                    paymentStatus.style.color = '#dc3545';
+                }
+            } else {
+                paymentStatus.textContent = 'Nenhum pagamento registrado';
+                paymentStatus.style.color = '#ffc107';
+            }
+        });
+    
+    // Carregar histórico completo
+    db.collection('payments')
+        .where('driverId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .get()
+        .then(querySnapshot => {
+            paymentHistoryList.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                paymentHistoryList.innerHTML = '<p class="empty-message">Nenhum pagamento encontrado.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const payment = doc.data();
+                const paymentElement = createPaymentHistoryElement(payment);
+                paymentHistoryList.appendChild(paymentElement);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar histórico de pagamentos:', error);
+            paymentHistoryList.innerHTML = '<p class="error-message">Erro ao carregar histórico.</p>';
+        });
+}
+
+// Evento para enviar sugestão
+submitSuggestionButton.addEventListener('click', () => {
+    if (!currentUser) return;
+    
+    const title = suggestionTitleInput.value.trim();
+    const text = suggestionTextInput.value.trim();
+    const type = suggestionTypeSelect.value;
+    
+    if (!title || !text) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+    }
+    
+    db.collection('suggestions').add({
+        userId: currentUser.uid,
+        userName: currentUserData.name || 'Usuário',
+        title: title,
+        text: text,
+        type: type,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+        alert('Sugestão enviada com sucesso!');
+        suggestionTitleInput.value = '';
+        suggestionTextInput.value = '';
+        suggestionTypeSelect.value = 'improvement';
+        loadUserSuggestions();
+    })
+    .catch(error => {
+        console.error('Erro ao enviar sugestão:', error);
+        alert('Erro ao enviar sugestão: ' + error.message);
+    });
+});
+
+// Evento para upload de tabela de preços
+uploadPricingButton.addEventListener('click', () => {
+    if (!currentUserData || currentUserData.accountType !== 'admin') return;
+    
+    const file = pricingImageInput.files[0];
+    if (!file) {
+        alert('Por favor, selecione uma imagem.');
+        return;
+    }
+    
+    const storageRef = storage.ref();
+    const pricingRef = storageRef.child('pricing/pricing-table.jpg');
+    
+    pricingRef.put(file)
+        .then(snapshot => snapshot.ref.getDownloadURL())
+        .then(downloadURL => {
+            return db.collection('settings').doc('pricing').set({
+                imageUrl: downloadURL,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: currentUser.uid
+            });
+        })
+        .then(() => {
+            alert('Tabela de preços atualizada com sucesso!');
+            loadPricingTable();
+        })
+        .catch(error => {
+            console.error('Erro ao atualizar tabela de preços:', error);
+            alert('Erro ao atualizar tabela de preços: ' + error.message);
+        });
+});
+
+// Função para exibir mototaxistas próximos
+function displayNearbyDrivers(drivers) {
+    driversListContainer.innerHTML = '';
+    
+    if (drivers.length === 0) {
+        driversListContainer.innerHTML = '<p class="empty-message">Nenhum mototaxista disponível no momento.</p>';
+        return;
+    }
+    
+    drivers.forEach(driver => {
+        const driverElement = createDriverElement(driver);
+        driversListContainer.appendChild(driverElement);
+    });
+}
+
+// Função para criar elemento de mototaxista
+function createDriverElement(driver) {
+    const driverDiv = document.createElement('div');
+    driverDiv.className = 'driver-item';
+    driverDiv.innerHTML = `
+        <img src="${driver.profilePictureUrl || 'icons/default-profile.png'}" alt="Foto do mototaxista" class="driver-avatar">
+        <div class="driver-info">
+            <h4 class="driver-name">${driver.name}</h4>
+            <div class="driver-rating">
+                <span class="rating-stars">${'★'.repeat(Math.floor(driver.rating))}</span>
+                <span>${driver.rating.toFixed(1)} (${driver.ratingCount} avaliações)</span>
+            </div>
+        </div>
+        <div class="driver-distance">${driver.distance.toFixed(1)} km</div>
+    `;
+    
+    return driverDiv;
+}
+
+// Função para criar elemento de histórico de corrida
+function createRideHistoryElement(ride) {
+    const rideDiv = document.createElement('div');
+    rideDiv.className = 'ride-history-item';
+    
+    const date = ride.createdAt ? ride.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    const status = ride.status === 'completed' ? 'Concluída' : 
+                  ride.status === 'cancelled' ? 'Cancelada' : 'Pendente';
+    
+    rideDiv.innerHTML = `
+        <div class="ride-info">
+            <h4>Corrida - ${date}</h4>
+            <p><strong>De:</strong> ${ride.pickup}</p>
+            <p><strong>Para:</strong> ${ride.destination}</p>
+            <p><strong>Tipo:</strong> ${ride.serviceType === 'passenger' ? 'Passageiro' : 'Entrega'}</p>
+            <p><strong>Status:</strong> <span class="status-${ride.status}">${status}</span></p>
+        </div>
+    `;
+    
+    return rideDiv;
+}
+
+// Função para criar elemento de histórico de avaliação
+function createRatingHistoryElement(rating) {
+    const ratingDiv = document.createElement('div');
+    ratingDiv.className = 'rating-history-item';
+    
+    const date = rating.createdAt ? rating.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    
+    ratingDiv.innerHTML = `
+        <div class="rating-info">
+            <h4>Avaliação - ${date}</h4>
+            <div class="rating-stars">${'★'.repeat(rating.rating)}</div>
+            <p>${rating.comment || 'Sem comentário'}</p>
+        </div>
+    `;
+    
+    return ratingDiv;
+}
+
+// Função para criar elemento de sugestão
+function createSuggestionElement(suggestion) {
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'suggestion-item';
+    
+    const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    const status = suggestion.status === 'pending' ? 'Pendente' : 
+                  suggestion.status === 'reviewed' ? 'Analisada' : 'Implementada';
+    
+    suggestionDiv.innerHTML = `
+        <div class="suggestion-info">
+            <h4>${suggestion.title}</h4>
+            <p>${suggestion.text}</p>
+            <p><strong>Tipo:</strong> ${suggestion.type}</p>
+            <p><strong>Status:</strong> <span class="status-${suggestion.status}">${status}</span></p>
+            <p><strong>Data:</strong> ${date}</p>
+        </div>
+    `;
+    
+    return suggestionDiv;
+}
+
+// Função para criar elemento de gestão de usuário
+function createUserManagementElement(userId, user) {
+    const userDiv = document.createElement('div');
+    userDiv.className = 'user-item';
+    
+    const isBlocked = user.status === 'blocked';
+    const accountTypeText = user.accountType === 'driver' ? 'Mototaxista' : 
+                           user.accountType === 'admin' ? 'Administrador' : 'Passageiro';
+    
+    userDiv.innerHTML = `
+        <div class="user-info">
+            <h4>${user.name}</h4>
+            <p>Email: ${user.email}</p>
+            <p>Telefone: ${user.phone}</p>
+            <p>Tipo: ${accountTypeText}</p>
+            <p>Status: ${isBlocked ? 'Bloqueado' : 'Ativo'}</p>
+        </div>
+        <div class="user-actions">
+            <button class="${isBlocked ? 'unblock-button' : 'block-button'}" onclick="toggleUserStatus('${userId}', ${isBlocked})">
+                ${isBlocked ? 'Desbloquear' : 'Bloquear'}
+            </button>
+        </div>
+    `;
+    
+    return userDiv;
+}
+
+// Função para criar elemento de sugestão do admin
+function createAdminSuggestionElement(suggestion) {
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'admin-suggestion-item';
+    
+    const date = suggestion.createdAt ? suggestion.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    
+    suggestionDiv.innerHTML = `
+        <div class="suggestion-info">
+            <h4>${suggestion.title}</h4>
+            <p><strong>Usuário:</strong> ${suggestion.userName}</p>
+            <p>${suggestion.text}</p>
+            <p><strong>Tipo:</strong> ${suggestion.type}</p>
+            <p><strong>Data:</strong> ${date}</p>
+        </div>
+    `;
+    
+    return suggestionDiv;
+}
+
+// Função para criar elemento de avaliação do admin
+function createAdminRatingElement(rating) {
+    const ratingDiv = document.createElement('div');
+    ratingDiv.className = 'admin-rating-item';
+    
+    const date = rating.createdAt ? rating.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    
+    ratingDiv.innerHTML = `
+        <div class="rating-info">
+            <h4>Avaliação ${rating.rating}/5</h4>
+            <div class="rating-stars">${'★'.repeat(rating.rating)}</div>
+            <p>${rating.comment || 'Sem comentário'}</p>
+            <p><strong>Data:</strong> ${date}</p>
+        </div>
+    `;
+    
+    return ratingDiv;
+}
+
+// Função para criar elemento de histórico de pagamento
+function createPaymentHistoryElement(payment) {
+    const paymentDiv = document.createElement('div');
+    paymentDiv.className = 'payment-item';
+    
+    const date = payment.createdAt ? payment.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data não disponível';
+    const statusText = payment.status === 'paid' ? 'Pago' : 
+                      payment.status === 'pending' ? 'Pendente' : 'Vencido';
+    
+    paymentDiv.innerHTML = `
+        <div class="payment-date">${date}</div>
+        <div class="payment-amount">R$ ${payment.amount.toFixed(2)}</div>
+        <div class="payment-status-badge payment-status-${payment.status}">${statusText}</div>
+    `;
+    
+    return paymentDiv;
+}
+
+// Função para alternar status do usuário (bloquear/desbloquear)
+function toggleUserStatus(userId, isCurrentlyBlocked) {
+    const newStatus = isCurrentlyBlocked ? 'active' : 'blocked';
+    
+    db.collection('users').doc(userId).update({
+        status: newStatus,
+        statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        statusUpdatedBy: currentUser.uid
+    })
+    .then(() => {
+        alert(`Usuário ${isCurrentlyBlocked ? 'desbloqueado' : 'bloqueado'} com sucesso!`);
+        loadUsersManagement();
+    })
+    .catch(error => {
+        console.error('Erro ao alterar status do usuário:', error);
+        alert('Erro ao alterar status do usuário: ' + error.message);
+    });
+}
+
+// Função para verificar e cancelar corridas expiradas automaticamente
+function checkExpiredRides() {
+    const now = new Date();
+    
+    db.collection('rides')
+        .where('status', 'in', ['pending', 'accepted'])
+        .get()
+        .then(querySnapshot => {
+            querySnapshot.forEach(doc => {
+                const ride = doc.data();
+                const rideTime = ride.createdAt ? ride.createdAt.toDate() : new Date(0);
+                const timeDiff = (now - rideTime) / (1000 * 60); // diferença em minutos
+                
+                if (timeDiff > 45) {
+                    // Cancelar corrida expirada
+                    db.collection('rides').doc(doc.id).update({
+                        status: 'cancelled',
+                        cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        cancellationReason: 'Cancelamento automático por timeout (45 minutos)'
                     });
                 }
-            }
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao verificar corridas expiradas:', error);
         });
-    } catch (error) {
-        console.error('Erro ao carregar sugestões:', error);
-        adminSuggestionsList.innerHTML = '<p class="error-message">Erro ao carregar sugestões. Tente novamente.</p>';
-    }
 }
 
-async function handleApproveSuggestion(suggestionId) {
-    try {
-        await db.collection('suggestions').doc(suggestionId).update({
-            status: 'approved',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Sugestão aprovada com sucesso!', 'success');
-        
-        // Recarregar lista
-        loadAdminSuggestions(suggestionSearch.value, suggestionFilter.value);
-    } catch (error) {
-        console.error('Erro ao aprovar sugestão:', error);
-        showToast('Erro ao aprovar sugestão. Tente novamente.', 'error');
-    }
-}
+// Iniciar verificação de corridas expiradas a cada 5 minutos
+setInterval(checkExpiredRides, 5 * 60 * 1000);
 
-async function handleRejectSuggestion(suggestionId) {
-    try {
-        await db.collection('suggestions').doc(suggestionId).update({
-            status: 'rejected',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Sugestão rejeitada com sucesso!', 'success');
-        
-        // Recarregar lista
-        loadAdminSuggestions(suggestionSearch.value, suggestionFilter.value);
-    } catch (error) {
-        console.error('Erro ao rejeitar sugestão:', error);
-        showToast('Erro ao rejeitar sugestão. Tente novamente.', 'error');
-    }
-}
 
-async function handleImplementSuggestion(suggestionId) {
-    try {
-        await db.collection('suggestions').doc(suggestionId).update({
-            status: 'implemented',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+// Monitoramento de autenticação do Firebase
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
         
-        showToast('Sugestão marcada como implementada com sucesso!', 'success');
+        // Carregar dados do usuário
+        db.collection('users').doc(user.uid).get()
+            .then(doc => {
+                if (doc.exists) {
+                    currentUserData = doc.data();
+                    
+                    // Atualizar interface
+                    userNameElement.textContent = currentUserData.name || 'Usuário';
+                    
+                    if (currentUserData.profilePictureUrl) {
+                        userProfilePicture.src = currentUserData.profilePictureUrl;
+                    }
+                    
+                    // Mostrar seção do app e esconder autenticação
+                    authSection.classList.add('hidden');
+                    appSection.classList.remove('hidden');
+                    
+                    // Configurar interface baseada no tipo de usuário
+                    if (currentUserData.accountType === 'admin') {
+                        navAdmin.classList.remove('hidden');
+                        // Criar usuário admin se não existir
+                        if (!currentUserData.isAdminSetup) {
+                            setupAdminUser();
+                        }
+                    }
+                    
+                    if (currentUserData.accountType === 'driver') {
+                        navPayments.classList.remove('hidden');
+                    }
+                    
+                    // Mostrar interface apropriada
+                    if (currentUserData.accountType === 'user') {
+                        passengerInterface.classList.remove('hidden');
+                    } else if (currentUserData.accountType === 'driver') {
+                        driverInterface.classList.remove('hidden');
+                    }
+                    
+                    // Carregar avaliação do usuário
+                    ratingService.loadUserRating(user.uid);
+                    
+                } else {
+                    console.error('Dados do usuário não encontrados');
+                    auth.signOut();
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados do usuário:', error);
+                auth.signOut();
+            });
+    } else {
+        // Usuário não autenticado
+        currentUser = null;
+        currentUserData = null;
         
-        // Recarregar lista
-        loadAdminSuggestions(suggestionSearch.value, suggestionFilter.value);
-    } catch (error) {
-        console.error('Erro ao marcar sugestão como implementada:', error);
-        showToast('Erro ao marcar sugestão como implementada. Tente novamente.', 'error');
-    }
-}
-
-async function loadAdminSettings() {
-    try {
-        // Carregar configurações
-        const settingsDoc = await db.collection('settings').doc('general').get();
+        // Mostrar seção de autenticação e esconder app
+        authSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
         
-        if (settingsDoc.exists) {
-            const settings = settingsDoc.data();
-            timeoutSetting.value = settings.rideTimeout || 5;
+        // Limpar dados da interface
+        userNameElement.textContent = 'Usuário';
+        userProfilePicture.src = 'icons/default-profile.png';
+        
+        // Esconder botões específicos
+        navAdmin.classList.add('hidden');
+        navPayments.classList.add('hidden');
+        
+        // Parar monitoramentos
+        if (rideCheckInterval) {
+            clearInterval(rideCheckInterval);
+            rideCheckInterval = null;
         }
         
-        // Carregar tabela de preços
-        const priceTableDoc = await db.collection('settings').doc('priceTable').get();
-        
-        if (priceTableDoc.exists && priceTableDoc.data().imageUrl) {
-            const priceTablePreview = document.createElement('img');
-            priceTablePreview.src = priceTableDoc.data().imageUrl;
-            priceTablePreview.alt = 'Tabela de preços atual';
-            priceTablePreview.style.maxWidth = '100%';
-            priceTablePreview.style.marginTop = '10px';
-            
-            const previewContainer = document.createElement('div');
-            previewContainer.id = 'price-table-preview';
-            previewContainer.appendChild(priceTablePreview);
-            
-            // Remover preview anterior se existir
-            const oldPreview = document.getElementById('price-table-preview');
-            if (oldPreview) {
-                oldPreview.remove();
-            }
-            
-            // Adicionar novo preview
-            document.querySelector('.form-group').appendChild(previewContainer);
+        if (timeoutCheckInterval) {
+            clearInterval(timeoutCheckInterval);
+            timeoutCheckInterval = null;
         }
-    } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
-        showToast('Erro ao carregar configurações. Tente novamente.', 'error');
+        
+        if (watchLocationId) {
+            geoService.stopWatching(watchLocationId);
+            watchLocationId = null;
+        }
     }
-}
+});
 
-async function handleSaveSettings() {
-    const timeout = parseInt(timeoutSetting.value);
-    
-    if (isNaN(timeout) || timeout < 1 || timeout > 60) {
-        showToast('Por favor, insira um tempo válido entre 1 e 60 minutos.', 'error');
-        return;
-    }
-    
-    try {
-        await db.collection('settings').doc('general').set({
-            rideTimeout: timeout,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        
-        showToast('Configurações salvas com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao salvar configurações:', error);
-        showToast('Erro ao salvar configurações. Tente novamente.', 'error');
-    }
-}
-
-async function handleUploadPriceTable() {
-    const file = priceTableUpload.files[0];
-    
-    if (!file) {
-        showToast('Por favor, selecione uma imagem.', 'error');
-        return;
-    }
-    
-    // Verificar tipo de arquivo
-    if (!file.type.match('image.*')) {
-        showToast('Por favor, selecione uma imagem.', 'error');
-        return;
-    }
-    
-    // Verificar tamanho do arquivo (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        showToast('A imagem deve ter no máximo 5MB.', 'error');
-        return;
-    }
-    
-    try {
-        // Upload da imagem para o Storage
-        const storageRef = storage.ref();
-        const fileRef = storageRef.child(`price_tables/price_table_${Date.now()}`);
-        
-        await fileRef.put(file);
-        const downloadURL = await fileRef.getDownloadURL();
-        
-        // Salvar URL no Firestore
-        await db.collection('settings').doc('priceTable').set({
-            imageUrl: downloadURL,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Tabela de preços atualizada com sucesso!', 'success');
-        
-        // Recarregar configurações
-        loadAdminSettings();
-    } catch (error) {
-        console.error('Erro ao fazer upload da tabela de preços:', error);
-        showToast('Erro ao fazer upload da tabela de preços. Tente novamente.', 'error');
-    }
-}
-
-// Funções do PWA
-function handleInstallPwa() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        
-        deferredPrompt.userChoice.then(choiceResult => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('Usuário aceitou a instalação do PWA');
-            } else {
-                console.log('Usuário recusou a instalação do PWA');
+// Função para configurar usuário administrador
+function setupAdminUser() {
+    // Verificar se já existe um admin
+    db.collection('users')
+        .where('accountType', '==', 'admin')
+        .where('isAdminSetup', '==', true)
+        .get()
+        .then(querySnapshot => {
+            if (querySnapshot.empty) {
+                // Primeiro admin do sistema
+                db.collection('users').doc(currentUser.uid).update({
+                    accountType: 'admin',
+                    isAdminSetup: true,
+                    adminSetupAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    console.log('Usuário configurado como administrador principal');
+                    currentUserData.accountType = 'admin';
+                    currentUserData.isAdminSetup = true;
+                    navAdmin.classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Erro ao configurar administrador:', error);
+                });
             }
-            
-            deferredPrompt = null;
         });
-        
-        pwaBanner.classList.add('hidden');
-    }
 }
 
-// Funções Utilitárias
-function showToast(message, type = 'info') {
-    // Verificar se já existe um toast
-    const existingToast = document.querySelector('.toast');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    
-    // Criar novo toast
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    // Mostrar toast
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
-    
-    // Esconder toast após 3 segundos
-    setTimeout(() => {
-        toast.classList.remove('show');
-        
-        // Remover toast do DOM após animação
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
-    }, 3000);
+// Aplicar tema salvo
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+    document.body.classList.toggle('dark-theme', savedTheme === 'dark');
 }
 
-function formatDate(date) {
-    const now = new Date();
-    const diff = now - date;
-    
-    // Menos de 1 minuto
-    if (diff < 60 * 1000) {
-        return 'Agora mesmo';
-    }
-    
-    // Menos de 1 hora
-    if (diff < 60 * 60 * 1000) {
-        const minutes = Math.floor(diff / (60 * 1000));
-        return `Há ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-    }
-    
-    // Menos de 24 horas
-    if (diff < 24 * 60 * 60 * 1000) {
-        const hours = Math.floor(diff / (60 * 60 * 1000));
-        return `Há ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-    }
-    
-    // Menos de 7 dias
-    if (diff < 7 * 24 * 60 * 60 * 1000) {
-        const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-        return `Há ${days} ${days === 1 ? 'dia' : 'dias'}`;
-    }
-    
-    // Formato completo
-    return date.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function getStarsHTML(rating) {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    
-    let starsHTML = '';
-    
-    // Estrelas cheias
-    for (let i = 0; i < fullStars; i++) {
-        starsHTML += '★';
-    }
-    
-    // Meia estrela
-    if (halfStar) {
-        starsHTML += '★';
-    }
-    
-    // Estrelas vazias
-    for (let i = 0; i < emptyStars; i++) {
-        starsHTML += '☆';
-    }
-    
-    return starsHTML;
-}
-
-// Adicionar estilos para o toast
-const style = document.createElement('style');
-style.textContent = `
-    .toast {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background-color: var(--bg-secondary);
-        color: var(--text-primary);
-        padding: 12px 20px;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px var(--shadow-color);
-        z-index: 1000;
-        opacity: 0;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    
-    .toast.show {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
-    
-    .toast-success {
-        border-left: 4px solid var(--success-color);
-    }
-    
-    .toast-error {
-        border-left: 4px solid var(--error-color);
-    }
-    
-    .toast-info {
-        border-left: 4px solid var(--accent-secondary);
-    }
-`;
-
-document.head.appendChild(style);

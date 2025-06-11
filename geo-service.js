@@ -1,50 +1,46 @@
 // Serviço de Geolocalização para o aplicativo Oops Transportes Caramujo
-const GeoService = {
-    // Obter a localização atual do usuário
-    getCurrentLocation: function() {
+
+// Namespace para evitar conflitos
+window.GeoService = (function() {
+    // Referência ao Firestore
+    const db = firebase.firestore();
+    
+    // Verificar se a geolocalização está disponível
+    const isGeolocationAvailable = () => {
+        return 'geolocation' in navigator;
+    };
+    
+    // Obter a posição atual
+    const getCurrentPosition = () => {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject(new Error('Geolocalização não é suportada pelo seu navegador'));
+            if (!isGeolocationAvailable()) {
+                reject(new Error('Geolocalização não disponível neste dispositivo.'));
                 return;
             }
             
             navigator.geolocation.getCurrentPosition(
-                position => {
+                (position) => {
                     const coords = {
                         latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
                     };
-                    
-                    // Converter coordenadas em endereço usando API de geocodificação reversa
-                    this.reverseGeocode(coords)
-                        .then(address => {
-                            resolve({
-                                coords: coords,
-                                address: address
-                            });
-                        })
-                        .catch(error => {
-                            // Se falhar a geocodificação, retorna apenas as coordenadas
-                            resolve({
-                                coords: coords,
-                                address: `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
-                            });
-                        });
+                    resolve(coords);
                 },
-                error => {
+                (error) => {
                     let errorMessage;
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            errorMessage = 'Permissão para geolocalização negada';
+                            errorMessage = 'Permissão para geolocalização negada.';
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMessage = 'Informação de localização indisponível';
+                            errorMessage = 'Informação de localização indisponível.';
                             break;
                         case error.TIMEOUT:
-                            errorMessage = 'Tempo esgotado ao obter localização';
+                            errorMessage = 'Tempo esgotado ao obter localização.';
                             break;
                         default:
-                            errorMessage = 'Erro desconhecido ao obter localização';
+                            errorMessage = 'Erro desconhecido ao obter localização.';
                     }
                     reject(new Error(errorMessage));
                 },
@@ -55,63 +51,187 @@ const GeoService = {
                 }
             );
         });
-    },
+    };
     
-    // Converter coordenadas em endereço usando API de geocodificação reversa
-    reverseGeocode: function(coords) {
-        return new Promise((resolve, reject) => {
-            // Usando a API Nominatim do OpenStreetMap para geocodificação reversa
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&zoom=18&addressdetails=1`;
-            
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Falha na geocodificação reversa');
+    // Iniciar monitoramento contínuo de localização
+    const startWatching = (callback) => {
+        if (!isGeolocationAvailable()) {
+            callback(null, new Error('Geolocalização não disponível neste dispositivo.'));
+            return null;
+        }
+        
+        return navigator.geolocation.watchPosition(
+            (position) => {
+                const coords = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                callback(coords, null);
+            },
+            (error) => {
+                callback(null, error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
+    
+    // Parar monitoramento de localização
+    const stopWatching = (watchId) => {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+        }
+    };
+    
+    // Salvar localização no Firestore
+    const saveLocationToFirestore = (userId, position) => {
+        if (!userId || !position) {
+            return Promise.reject(new Error('Usuário ou posição inválidos.'));
+        }
+        
+        return db.collection('users').doc(userId).update({
+            location: {
+                latitude: position.latitude,
+                longitude: position.longitude,
+                accuracy: position.accuracy,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }
+        });
+    };
+    
+    // Calcular distância entre dois pontos (fórmula de Haversine)
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // Raio da Terra em km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c; // Distância em km
+        return distance;
+    };
+    
+    // Encontrar mototaxistas próximos
+    const findNearbyDrivers = (position, maxDistance = 10) => {
+        if (!position) {
+            return Promise.reject(new Error('Posição inválida.'));
+        }
+        
+        return db.collection('users')
+            .where('accountType', '==', 'driver')
+            .where('status', '==', 'available')
+            .get()
+            .then((querySnapshot) => {
+                const nearbyDrivers = [];
+                querySnapshot.forEach((doc) => {
+                    const driverData = doc.data();
+                    if (driverData.location) {
+                        const distance = calculateDistance(
+                            position.latitude,
+                            position.longitude,
+                            driverData.location.latitude,
+                            driverData.location.longitude
+                        );
+                        
+                        if (distance <= maxDistance) {
+                            nearbyDrivers.push({
+                                id: doc.id,
+                                name: driverData.name,
+                                distance: distance,
+                                rating: driverData.rating || 0,
+                                ratingCount: driverData.ratingCount || 0,
+                                profilePictureUrl: driverData.profilePictureUrl
+                            });
+                        }
                     }
-                    return response.json();
-                })
+                });
+                
+                // Ordenar por distância
+                nearbyDrivers.sort((a, b) => a.distance - b.distance);
+                return nearbyDrivers;
+            });
+    };
+    
+    // Converter endereço em coordenadas (geocoding)
+    const getCoordsFromAddress = (address) => {
+        return new Promise((resolve, reject) => {
+            // Usando a API de Geocodificação do OpenStreetMap (Nominatim)
+            const encodedAddress = encodeURIComponent(address);
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`)
+                .then(response => response.json())
                 .then(data => {
-                    if (data && data.display_name) {
-                        // Simplificar o endereço para exibição
-                        const addressParts = data.display_name.split(',');
-                        // Pegar apenas os primeiros 3-4 componentes do endereço para simplificar
-                        const simplifiedAddress = addressParts.slice(0, 4).join(',');
-                        resolve(simplifiedAddress);
+                    if (data && data.length > 0) {
+                        resolve({
+                            latitude: parseFloat(data[0].lat),
+                            longitude: parseFloat(data[0].lon)
+                        });
                     } else {
-                        reject(new Error('Endereço não encontrado'));
+                        reject(new Error('Endereço não encontrado.'));
                     }
                 })
                 .catch(error => {
                     reject(error);
                 });
         });
-    },
+    };
     
-    // Calcular distância entre duas coordenadas usando a fórmula de Haversine
-    calculateDistance: function(coords1, coords2) {
-        const R = 6371; // Raio da Terra em km
-        const dLat = this.deg2rad(coords2.latitude - coords1.latitude);
-        const dLon = this.deg2rad(coords2.longitude - coords1.longitude);
-        const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(this.deg2rad(coords1.latitude)) * Math.cos(this.deg2rad(coords2.latitude)) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c; // Distância em km
-        return distance;
-    },
+    // Converter coordenadas em endereço (geocoding reverso)
+    const getAddressFromCoords = (latitude, longitude) => {
+        return new Promise((resolve, reject) => {
+            // Usando a API de Geocodificação Reversa do OpenStreetMap (Nominatim)
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.address) {
+                        const address = {
+                            street: data.address.road || data.address.pedestrian || '',
+                            number: data.address.house_number || '',
+                            neighborhood: data.address.suburb || data.address.neighbourhood || '',
+                            city: data.address.city || data.address.town || data.address.village || '',
+                            state: data.address.state || '',
+                            country: data.address.country || '',
+                            fullAddress: data.display_name || ''
+                        };
+                        resolve(address);
+                    } else {
+                        reject(new Error('Não foi possível obter o endereço para estas coordenadas.'));
+                    }
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        });
+    };
     
-    // Converter graus para radianos
-    deg2rad: function(deg) {
-        return deg * (Math.PI/180);
-    },
+    // Inicializar o serviço
+    const init = () => {
+        return getCurrentPosition()
+            .then(position => {
+                console.log('Geolocalização inicializada com sucesso.');
+                return position;
+            })
+            .catch(error => {
+                console.error('Erro ao inicializar geolocalização:', error);
+                throw error;
+            });
+    };
     
-    // Estimar tempo de chegada baseado na distância
-    estimateArrivalTime: function(distanceKm) {
-        // Assumindo velocidade média de 30 km/h para mototáxi em área urbana
-        const averageSpeedKmh = 30;
-        // Tempo em minutos
-        const timeMinutes = (distanceKm / averageSpeedKmh) * 60;
-        return Math.round(timeMinutes);
-    }
-};
+    // API pública
+    return {
+        init,
+        getCurrentPosition,
+        startWatching,
+        stopWatching,
+        saveLocationToFirestore,
+        calculateDistance,
+        findNearbyDrivers,
+        getCoordsFromAddress,
+        getAddressFromCoords
+    };
+})();
