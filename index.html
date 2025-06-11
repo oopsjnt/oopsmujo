@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0f3460">
     <title>Oops Transportes Caramujo</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192x192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="stylesheet" href="/oopsmujo/style.css">
+    <link rel="manifest" href="/oopsmujo/manifest.json">
+    <link rel="icon" href="/oopsmujo/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/oopsmujo/icons/icon-192x192.png">
     <style>
         /* Correções para restaurar a navegação por abas */
         .screen {
@@ -57,7 +57,7 @@
         <!-- Tela de Login -->
         <div id="login-screen" class="screen">
             <div class="logo-container">
-                <img src="icons/icon-512x512.png" alt="Logo" class="logo">
+                <img src="/oopsmujo/icons/icon-512x512.png" alt="Logo" class="logo">
                 <h1>Oops Transportes Caramujo</h1>
             </div>
             <div class="tabs">
@@ -144,7 +144,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="passenger-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="passenger-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="passenger-name">Usuário</span>
                     <button id="passenger-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -184,7 +184,7 @@
                         <div id="driver-contact" style="display: none;">
                             <p><strong>Telefone:</strong> <span id="driver-phone"></span></p>
                             <a id="whatsapp-link" href="#" target="_blank" class="whatsapp-btn">
-                                <img src="icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
+                                <img src="/oopsmujo/icons/whatsapp.png" alt="WhatsApp" class="whatsapp-icon">
                                 Contatar via WhatsApp
                             </a>
                         </div>
@@ -234,7 +234,7 @@
                 <h2>Seu Perfil</h2>
                 <div class="profile-container">
                     <div class="profile-picture-container">
-                        <img id="profile-picture-preview" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
+                        <img id="profile-picture-preview" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic-large">
                         <label for="profile-picture-upload" class="btn secondary-btn">Alterar Foto</label>
                         <input type="file" id="profile-picture-upload" accept="image/*" style="display: none;">
                     </div>
@@ -290,7 +290,7 @@
             <header>
                 <h1>Oops Transportes Caramujo</h1>
                 <div class="user-info">
-                    <img id="driver-profile-pic" src="icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
+                    <img id="driver-profile-pic" src="/oopsmujo/icons/default-profile.png" alt="Foto de Perfil" class="profile-pic">
                     <span id="driver-name">Mototaxista</span>
                     <button id="driver-logout" class="btn logout-btn">Sair</button>
                 </div>
@@ -624,25 +624,25 @@
         <div id="toast" class="toast"></div>
     </div>
 
-    <!-- Firebase SDK -->
+     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     
     <!-- Serviços -->
-    <script src="geo-service.js"></script>
-    <script src="rating-service.js"></script>
-    <script src="admin-service.js"></script>
+    <script src="/oopsmujo/geo-service.js"></script>
+    <script src="/oopsmujo/rating-service.js"></script>
+    <script src="/oopsmujo/admin-service.js"></script>
     
     <!-- Script Principal -->
-    <script src="script.js"></script>
+    <script src="/oopsmujo/script.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register('/oopsmujo/service-worker.js')
                     .then(registration => {
                         console.log('Service Worker registrado com sucesso:', registration);
                     })
@@ -653,71 +653,113 @@
         }
     </script>
     
-    <!-- Script de correção para navegação por abas -->
+    <!-- Script de correção para fluxo de autenticação -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Script de restauração de navegação por abas iniciado');
+            console.log('Script de correção para fluxo de autenticação iniciado');
             
-            // Ocultar todas as telas exceto a de login
-            const screens = document.querySelectorAll('.screen');
-            screens.forEach(screen => {
-                if (screen.id !== 'login-screen') {
+            // Função para mostrar uma tela específica
+            window.showScreen = function(screenId) {
+                // Ocultar todas as telas
+                const screens = document.querySelectorAll('.screen');
+                screens.forEach(screen => {
                     screen.style.display = 'none';
-                } else {
-                    screen.style.display = 'block';
-                }
-            });
-            
-            // Ocultar todos os conteúdos de abas exceto os ativos
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => {
-                if (!content.classList.contains('active')) {
-                    content.style.display = 'none';
-                } else {
-                    content.style.display = 'block';
-                }
-            });
-            
-            // Restaurar a funcionalidade de navegação por abas
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            
-            tabBtns.forEach(btn => {
-                // Remover listeners existentes para evitar duplicação
-                const newBtn = btn.cloneNode(true);
-                btn.parentNode.replaceChild(newBtn, btn);
-                
-                newBtn.addEventListener('click', function() {
-                    const tabId = this.getAttribute('data-tab');
-                    
-                    // Encontrar o container pai (para limitar o escopo)
-                    const parentContainer = this.closest('.screen');
-                    if (!parentContainer) return;
-                    
-                    // Remover classe active de todos os botões no mesmo container
-                    const siblingBtns = parentContainer.querySelectorAll('.tab-btn');
-                    siblingBtns.forEach(b => b.classList.remove('active'));
-                    
-                    // Remover classe active de todos os conteúdos no mesmo container
-                    const siblingContents = parentContainer.querySelectorAll('.tab-content');
-                    siblingContents.forEach(c => {
-                        c.classList.remove('active');
-                        c.style.display = 'none';
-                    });
-                    
-                    // Adicionar classe active ao botão clicado
-                    this.classList.add('active');
-                    
-                    // Adicionar classe active ao conteúdo correspondente
-                    const activeContent = parentContainer.querySelector('#' + tabId);
-                    if (activeContent) {
-                        activeContent.classList.add('active');
-                        activeContent.style.display = 'block';
-                    }
                 });
-            });
+                
+                // Mostrar a tela solicitada
+                const targetScreen = document.getElementById(screenId);
+                if (targetScreen) {
+                    targetScreen.style.display = 'block';
+                    console.log('Alternou para a tela:', screenId);
+                }
+            };
             
-            console.log('Script de restauração de navegação por abas concluído');
+            // Sobrescrever o comportamento do Firebase Auth para garantir navegação correta
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                // Armazenar a função original
+                const originalOnAuthStateChanged = firebase.auth().onAuthStateChanged;
+                
+                // Sobrescrever com nossa versão que garante a navegação correta
+                firebase.auth().onAuthStateChanged = function(callback) {
+                    return originalOnAuthStateChanged.call(firebase.auth(), function(user) {
+                        console.log('Estado de autenticação alterado:', user ? 'Usuário autenticado' : 'Usuário não autenticado');
+                        
+                        if (user) {
+                            // Usuário autenticado - verificar tipo e redirecionar
+                            firebase.firestore().collection('users').doc(user.uid).get()
+                                .then(doc => {
+                                    if (doc.exists) {
+                                        const userData = doc.data();
+                                        const userType = userData.type;
+                                        
+                                        // Redirecionar com base no tipo de usuário
+                                        if (userData.isAdmin) {
+                                            console.log('Usuário é admin, redirecionando para tela de admin');
+                                            showScreen('admin-screen');
+                                        } else if (userType === 'driver') {
+                                            console.log('Usuário é mototaxista, redirecionando para tela de mototaxista');
+                                            showScreen('driver-screen');
+                                        } else {
+                                            console.log('Usuário é passageiro, redirecionando para tela de passageiro');
+                                            showScreen('passenger-screen');
+                                        }
+                                    } else {
+                                        console.error('Documento do usuário não encontrado');
+                                        firebase.auth().signOut();
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Erro ao buscar dados do usuário:', error);
+                                    showScreen('login-screen');
+                                });
+                        } else {
+                            // Usuário não autenticado - mostrar tela de login
+                            console.log('Usuário não autenticado, mostrando tela de login');
+                            showScreen('login-screen');
+                        }
+                        
+                        // Chamar o callback original
+                        callback(user);
+                    });
+                };
+            }
+            
+            // Corrigir o comportamento do formulário de login
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
+                    
+                    if (!email || !password) {
+                        console.error('Email ou senha não fornecidos');
+                        return;
+                    }
+                    
+                    console.log('Tentando fazer login...');
+                    
+                    firebase.auth().signInWithEmailAndPassword(email, password)
+                        .then(userCredential => {
+                            console.log('Login bem-sucedido');
+                            // A navegação será tratada pelo listener onAuthStateChanged
+                        })
+                        .catch(error => {
+                            console.error('Erro ao fazer login:', error);
+                            const errorMessage = document.getElementById('login-error');
+                            if (errorMessage) {
+                                errorMessage.textContent = 'Erro ao fazer login. Verifique suas credenciais.';
+                            }
+                        });
+                });
+            }
+            
+            console.log('Script de correção para fluxo de autenticação concluído');
         });
+    </script>      });
+            });
+        }
     </script>
 </body>
 </html>
